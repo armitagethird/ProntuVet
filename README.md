@@ -1,36 +1,17 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+VetScribe AI
 
-## Getting Started
+Aplicação web para médicos-veterinários que transforma a conversa da consulta em um prontuário estruturado de forma prática, rápida e intuitiva.
 
-First, run the development server:
+O VetScribe AI foi criado para funcionar como um copiloto clínico no dia a dia veterinário. Durante a consulta, o profissional pode utilizar a escuta da conversa e, ao final, receber um prontuário completo, organizado e pronto para revisão. A proposta do sistema não é ser apenas um gravador ou transcritor, mas sim um auxiliador inteligente para documentação veterinária, reduzindo o tempo gasto com registros e permitindo que o veterinário foque mais no atendimento ao tutor e ao animal.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Um dos grandes diferenciais da aplicação é a possibilidade de personalizar o prontuário de acordo com o modelo utilizado por cada profissional ou clínica, tornando a ferramenta mais adaptável à rotina real do consultório. Além disso, a interface foi pensada para ser bonita, intuitiva e simples de usar, facilitando a adoção no dia a dia sem atrapalhar o fluxo do atendimento.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Entre as principais funcionalidades do projeto estão a escuta da consulta em tempo real, a geração automática de prontuário completo, a personalização do modelo de prontuário, a organização estruturada das informações clínicas e uma experiência de uso rápida e prática. O sistema é voltado para médicos-veterinários, clínicas veterinárias e profissionais que desejam ganhar produtividade, padronizar sua documentação clínica e reduzir retrabalho.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Este projeto foi desenvolvido com Next.js, React e TypeScript. Para rodar localmente, basta instalar as dependências e iniciar o servidor de desenvolvimento com npm install e npm run dev. Também é possível utilizar yarn, pnpm ou bun, de acordo com a preferência do desenvolvedor. Depois disso, é só abrir http://localhost:3000 no navegador para visualizar a aplicação em execução. O desenvolvimento pode ser iniciado editando arquivos como app/page.tsx, com atualização automática no navegador durante o processo.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+O projeto também possui potencial para evoluir com novas funcionalidades, como histórico de consultas, busca inteligente em prontuários, múltiplos modelos de prontuário, resumos para tutor e para outro veterinário, tags por atendimento, organização por animal e dashboards simples de uso. Atualmente, a aplicação está em evolução, com foco em testes práticos na rotina veterinária e melhoria contínua da experiência do usuário.
 
-## Learn More
+A forma mais simples de publicar este projeto é utilizando a Vercel, que oferece uma integração muito boa com aplicações em Next.js. Sugestões, melhorias e contribuições são bem-vindas para continuar evoluindo a plataforma e torná-la cada vez mais útil para a documentação clínica veterinária.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Desenvolvido com foco em produtividade, organização clínica e experiência real de atendimento veterinário.
