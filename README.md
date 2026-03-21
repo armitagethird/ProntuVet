@@ -1,17 +1,95 @@
-VetScribe AI
+# 🐾 ProntuVet
 
-Aplicação web para médicos-veterinários que transforma a conversa da consulta em um prontuário estruturado de forma prática, rápida e intuitiva.
+> Copiloto clínico com IA para médicos-veterinários — da consulta ao prontuário em segundos.
 
-O VetScribe AI foi criado para funcionar como um copiloto clínico no dia a dia veterinário. Durante a consulta, o profissional pode utilizar a escuta da conversa e, ao final, receber um prontuário completo, organizado e pronto para revisão. A proposta do sistema não é ser apenas um gravador ou transcritor, mas sim um auxiliador inteligente para documentação veterinária, reduzindo o tempo gasto com registros e permitindo que o veterinário foque mais no atendimento ao tutor e ao animal.
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+![LLM](https://img.shields.io/badge/LLM-Powered-8B5CF6?style=flat)
 
-Um dos grandes diferenciais da aplicação é a possibilidade de personalizar o prontuário de acordo com o modelo utilizado por cada profissional ou clínica, tornando a ferramenta mais adaptável à rotina real do consultório. Além disso, a interface foi pensada para ser bonita, intuitiva e simples de usar, facilitando a adoção no dia a dia sem atrapalhar o fluxo do atendimento.
+---
 
-Entre as principais funcionalidades do projeto estão a escuta da consulta em tempo real, a geração automática de prontuário completo, a personalização do modelo de prontuário, a organização estruturada das informações clínicas e uma experiência de uso rápida e prática. O sistema é voltado para médicos-veterinários, clínicas veterinárias e profissionais que desejam ganhar produtividade, padronizar sua documentação clínica e reduzir retrabalho.
+## O que é o ProntuVet?
 
-Este projeto foi desenvolvido com Next.js, React e TypeScript. Para rodar localmente, basta instalar as dependências e iniciar o servidor de desenvolvimento com npm install e npm run dev. Também é possível utilizar yarn, pnpm ou bun, de acordo com a preferência do desenvolvedor. Depois disso, é só abrir http://localhost:3000 no navegador para visualizar a aplicação em execução. O desenvolvimento pode ser iniciado editando arquivos como app/page.tsx, com atualização automática no navegador durante o processo.
+O **ProntuVet** é uma aplicação web que transforma a conversa da consulta veterinária em um prontuário estruturado — de forma prática, rápida e intuitiva.
 
-O projeto também possui potencial para evoluir com novas funcionalidades, como histórico de consultas, busca inteligente em prontuários, múltiplos modelos de prontuário, resumos para tutor e para outro veterinário, tags por atendimento, organização por animal e dashboards simples de uso. Atualmente, a aplicação está em evolução, com foco em testes práticos na rotina veterinária e melhoria contínua da experiência do usuário.
+Funciona como um **copiloto clínico**: o veterinário conduz o atendimento normalmente enquanto o sistema escuta, processa e gera um prontuário completo ao final. Menos tempo com registros, mais tempo com o paciente.
 
-A forma mais simples de publicar este projeto é utilizando a Vercel, que oferece uma integração muito boa com aplicações em Next.js. Sugestões, melhorias e contribuições são bem-vindas para continuar evoluindo a plataforma e torná-la cada vez mais útil para a documentação clínica veterinária.
+---
 
-Desenvolvido com foco em produtividade, organização clínica e experiência real de atendimento veterinário.
+## Funcionalidades
+
+- 🎙️ **Escuta em tempo real** — captura a consulta durante o atendimento
+- 📋 **Geração automática de prontuário** — estruturado e pronto para revisão
+- ✏️ **Prontuário personalizável** — adapta o modelo ao padrão de cada clínica
+- 💾 **Histórico de prontuários** — registros organizados por animal e tutor
+- ⚡ **Interface rápida e intuitiva** — pensada para o fluxo real do consultório
+
+---
+
+## Stack
+
+| Tecnologia | Uso |
+|---|---|
+| Next.js + React | Frontend e estrutura da aplicação |
+| TypeScript | Tipagem e qualidade de código |
+| Tailwind CSS | Estilização |
+| LLM (IA) | Processamento de linguagem e geração do prontuário |
+| Supabase / SQL | Banco de dados e persistência |
+
+---
+
+## Como rodar localmente
+
+```bash
+# Clone o repositório
+git clone https://github.com/armitagethird/ProntuVet.git
+
+# Instale as dependências
+npm install
+
+# Inicie o servidor de desenvolvimento
+npm run dev
+```
+
+Acesse [http://localhost:3000](http://localhost:3000) no navegador.
+
+> **Requisito:** Configure as variáveis de ambiente no arquivo `.env.local` antes de rodar. Veja o `.env.example` como referência.
+
+---
+
+## Deploy
+
+O projeto está hospedado na **Vercel**:
+
+🔗 [clinic-scribe-ai-1-1.vercel.app](https://clinic-scribe-ai-1-1.vercel.app)
+
+---
+
+## Sobre o projeto
+
+O ProntuVet nasceu da observação de um problema real: veterinários perdem tempo valioso preenchendo prontuários manualmente após cada consulta. A proposta não é substituir o profissional — é liberar tempo para que ele foque no que importa: o atendimento.
+
+Desenvolvido por **Romero Saraiva** como projeto de portfólio, unindo desenvolvimento web moderno e inteligência artificial aplicada.
+
+---
+
+## Roadmap
+
+- [ ] Histórico completo por animal
+- [ ] Múltiplos modelos de prontuário
+- [ ] Resumo para tutor
+- [ ] Busca inteligente em prontuários
+- [ ] Dashboard de atendimentos
+- [ ] Tags por tipo de consulta
+
+---
+
+## Contato
+
+**Romero Saraiva** — ServiceNow Developer & Engenheiro de IA
+
+📧 romerosaraiva4@gmail.com
+🌐 [armitagethird.github.io/curriculo](https://armitagethird.github.io/curriculo)
+💼 [LinkedIn](https://linkedin.com/in/romerosaraiva)
