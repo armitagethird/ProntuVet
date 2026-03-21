@@ -91,5 +91,5 @@ Desenvolvido por **Romero Saraiva** como projeto de portfólio, unindo desenvolv
 **Romero Saraiva** — ServiceNow Developer & Engenheiro de IA
 
 📧 romerosaraiva4@gmail.com
-🌐 [armitagethird.github.io/curriculo](https://armitagethird.github.io/curriculo)
+🌐 [romerosaraiva.com](romerosaraiva.com)
 💼 [LinkedIn](https://linkedin.com/in/romerosaraiva)
