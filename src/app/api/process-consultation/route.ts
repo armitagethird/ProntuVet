@@ -5,12 +5,14 @@ import OpenAI, { toFile } from 'openai'
 // This allows the route to run for up to 5 minutes to handle large audio files
 export const maxDuration = 300
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-})
+// Note: openai will be initialized inside the request handler to avoid build-time errors with missing environment variables
+
 
 export async function POST(req: NextRequest) {
     try {
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        })
         const supabase = await createClient()
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
