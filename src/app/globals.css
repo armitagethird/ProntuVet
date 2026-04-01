@@ -77,7 +77,7 @@
 }
 
 :root {
-  /* Slate/Amber modern combo */
+  /* Slate/Teal modern combo */
   --background: oklch(0.99 0.01 250); 
   --foreground: oklch(0.2 0.02 245);
   --card: oklch(1 0 0);
@@ -85,28 +85,28 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.02 245);
   
-  /* Vibrant Amber Core (Primary) */
-  --primary: oklch(0.7 0.18 55);
+  /* Vibrant Teal Core (Primary) */
+  --primary: oklch(0.65 0.12 180);
   --primary-foreground: oklch(0.985 0 0);
   
-  --secondary: oklch(0.96 0.02 250);
+  --secondary: oklch(0.96 0.02 200);
   --secondary-foreground: oklch(0.2 0.02 245);
   
-  --muted: oklch(0.96 0.02 250);
+  --muted: oklch(0.96 0.02 200);
   --muted-foreground: oklch(0.5 0.02 245);
   
-  --accent: oklch(0.96 0.04 60);
-  --accent-foreground: oklch(0.3 0.1 55);
+  --accent: oklch(0.96 0.04 220);
+  --accent-foreground: oklch(0.3 0.1 240);
   
   --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.9 0.02 250);
-  --input: oklch(0.9 0.02 250);
-  --ring: oklch(0.7 0.18 55);
+  --border: oklch(0.9 0.02 200);
+  --input: oklch(0.9 0.02 200);
+  --ring: oklch(0.65 0.12 180);
   --radius: 0.75rem;
 }
 
 .dark {
-  /* Dark Slate / Warm Amber combo */
+  /* Dark Slate / Teal combo */
   --background: oklch(0.15 0.02 245);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.2 0.02 245);
@@ -114,7 +114,7 @@
   --popover: oklch(0.2 0.02 245);
   --popover-foreground: oklch(0.985 0 0);
   
-  --primary: oklch(0.7 0.18 55);
+  --primary: oklch(0.65 0.12 180);
   --primary-foreground: oklch(0.985 0 0);
   
   --secondary: oklch(0.25 0.02 245);
@@ -123,13 +123,13 @@
   --muted: oklch(0.25 0.02 245);
   --muted-foreground: oklch(0.7 0.02 245);
   
-  --accent: oklch(0.3 0.1 55);
+  --accent: oklch(0.3 0.1 220);
   --accent-foreground: oklch(0.985 0 0);
   
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(0.25 0.02 245);
   --input: oklch(0.25 0.02 245);
-  --ring: oklch(0.7 0.18 55);
+  --ring: oklch(0.65 0.12 180);
 }
 
 @layer base {
@@ -137,7 +137,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground tracking-tight selection:bg-amber-500/30;
+    @apply bg-background text-foreground tracking-tight selection:bg-teal-500/30;
   }
   html {
     @apply font-sans;

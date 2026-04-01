@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/server'
 import { logout } from '@/app/login/actions'
-import { User, Activity, Dog } from 'lucide-react'
+import { User, Dog } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default async function DashboardLayout({
     children,
@@ -14,10 +15,12 @@ export default async function DashboardLayout({
 
     return (
         <div className="min-h-screen flex flex-col bg-background text-foreground">
-            <header className="border-b bg-card text-card-foreground shadow-sm px-4 py-3 flex justify-between items-center sticky top-0 z-10">
-                <div className="font-bold text-lg tracking-tight flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    ClinicScribe AI
+            <header className="border-b bg-card text-card-foreground shadow-sm px-4 h-14 flex justify-between items-center sticky top-0 z-10 overflow-visible">
+                <div className="font-bold text-lg tracking-tight flex items-center gap-3">
+                    <div className="relative animate-float scale-[1.7] origin-center translate-y-2 translate-x-1">
+                        <Image src="/logo.png" alt="ProntuVet Logo" width={40} height={40} className="object-contain drop-shadow-sm" priority />
+                    </div>
+                    <span className="ml-3">ProntuVet</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">
@@ -34,7 +37,7 @@ export default async function DashboardLayout({
             </main>
 
             <footer className="border-t py-6 text-center text-sm text-muted-foreground mt-auto">
-                <p>ClinicScribe AI - MVP © {new Date().getFullYear()}</p>
+                <p>ProntuVet - MVP © {new Date().getFullYear()}</p>
             </footer>
         </div>
     )

@@ -6,9 +6,16 @@ export default async function ConsultationDetailsPage(props: { params: Promise<{
     const params = await props.params;
     const supabase = await createClient()
 
+    // Fetch consultation with animal details included
     const { data, error } = await supabase
         .from('consultations')
-        .select('*')
+        .select(`
+            *,
+            animals (
+                name,
+                species
+            )
+        `)
         .eq('id', params.id)
         .single()
 

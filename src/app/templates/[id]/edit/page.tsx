@@ -108,7 +108,7 @@ export default function EditTemplatePage(props: { params: Promise<{ id: string }
     if (isLoading) {
         return (
             <div className="flex-1 flex items-center justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
             </div>
         )
     }
@@ -122,12 +122,12 @@ export default function EditTemplatePage(props: { params: Promise<{ id: string }
                 </Link>
             </div>
 
-            <Card className="shadow-2xl border-amber-500/20 bg-background/80 backdrop-blur-xl animate-fade-in-up-delay-1">
+            <Card className="shadow-2xl border-teal-500/20 bg-background/80 backdrop-blur-xl animate-fade-in-up-delay-1">
                 <form onSubmit={handleSave}>
-                    <CardHeader className="bg-gradient-to-b from-amber-500/5 to-transparent border-b border-border/40 pb-5">
+                    <CardHeader className="bg-gradient-to-b from-teal-500/5 to-transparent border-b border-border/40 pb-5">
                         <div className="flex justify-between items-start">
                             <div>
-                                <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-600 shadow-lg shadow-amber-500/30 rounded-2xl flex items-center justify-center mb-5 animate-float">
+                                <div className="w-14 h-14 bg-gradient-to-br from-teal-400 to-blue-600 shadow-lg shadow-teal-500/30 rounded-2xl flex items-center justify-center mb-5 animate-float">
                                     <FileEdit className="w-7 h-7 text-white" />
                                 </div>
                                 <CardTitle className="text-3xl font-bold tracking-tight">Editar Modelo</CardTitle>
@@ -159,7 +159,7 @@ export default function EditTemplatePage(props: { params: Promise<{ id: string }
                                 placeholder="Ex: Avaliação Inicial - Clínico Geral (Cães)"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="text-base font-medium h-12 bg-background/50 focus-visible:ring-amber-500 transition-shadow"
+                                className="text-base font-medium h-12 bg-background/50 focus-visible:ring-teal-500 transition-shadow"
                                 required
                             />
                         </div>
@@ -178,7 +178,7 @@ export default function EditTemplatePage(props: { params: Promise<{ id: string }
                                 placeholder="Insira a sua estrutura desejada aqui..."
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                className="min-h-[400px] text-sm font-mono leading-relaxed bg-background/50 focus-visible:ring-amber-500 shadow-inner resize-y p-4"
+                                className="min-h-[400px] text-sm font-mono leading-relaxed bg-background/50 focus-visible:ring-teal-500 shadow-inner resize-y p-4"
                                 required
                             />
                         </div>
@@ -188,7 +188,7 @@ export default function EditTemplatePage(props: { params: Promise<{ id: string }
                         <Button type="button" variant="ghost" className="rounded-full hover:bg-muted/50" onClick={() => router.push('/dashboard')} disabled={isSaving || isDeleting}>
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={isSaving || isDeleting} className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md shadow-amber-500/20 min-w-[150px] rounded-full transition-all duration-300 hover:scale-[1.02]">
+                        <Button type="submit" disabled={isSaving || isDeleting} className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 min-w-[150px] rounded-full transition-all duration-300 hover:scale-[1.02]">
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                             Atualizar Modelo
                         </Button>

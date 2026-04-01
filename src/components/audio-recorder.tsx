@@ -139,11 +139,11 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
     }
 
     return (
-        <Card className="w-full max-w-md mx-auto shadow-2xl border-amber-500/20 bg-background/80 backdrop-blur-xl animate-fade-in-up transition-all duration-300">
-            <CardHeader className="text-center pb-8 border-b border-border/40 bg-gradient-to-b from-amber-500/5 to-transparent">
+        <Card className="w-full max-w-md mx-auto shadow-2xl border-teal-500/20 bg-background/80 backdrop-blur-xl animate-fade-in-up transition-all duration-300">
+            <CardHeader className="text-center pb-8 border-b border-border/40 bg-gradient-to-b from-teal-500/5 to-transparent">
                 <CardTitle className="text-3xl font-bold tracking-tight">Ouvindo a Consulta</CardTitle>
                 <CardDescription className="text-base font-medium mt-2">
-                    Modelo em uso: <br /><strong className="text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full inline-block mt-2 font-bold shadow-sm">{templateName}</strong>
+                    Modelo em uso: <br /><strong className="text-teal-600 bg-teal-500/10 px-3 py-1 rounded-full inline-block mt-2 font-bold shadow-sm">{templateName}</strong>
                 </CardDescription>
             </CardHeader>
 
@@ -158,9 +158,9 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                 {isProcessing ? (
                     <div className="flex flex-col items-center justify-center space-y-6 animate-fade-in-up w-full">
                         <div className="relative">
-                            <div className="w-28 h-28 rounded-full border-4 border-amber-500/20 flex items-center justify-center relative overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/0 via-amber-500/20 to-orange-500/0 animate-spin" style={{ animationDuration: '3s' }} />
-                                <Loader2 className="w-12 h-12 animate-spin text-amber-500 relative z-10" />
+                            <div className="w-28 h-28 rounded-full border-4 border-teal-500/20 flex items-center justify-center relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/0 via-teal-500/20 to-blue-500/0 animate-spin" style={{ animationDuration: '3s' }} />
+                                <Loader2 className="w-12 h-12 animate-spin text-teal-500 relative z-10" />
                             </div>
                         </div>
                         <p className="text-xl font-semibold text-center text-foreground animate-pulse-soft">
@@ -174,10 +174,10 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                     <>
                         <div className="relative flex items-center justify-center group h-40">
                             {isRecording && !isPaused && (
-                                <div className="absolute inset-0 rounded-full bg-amber-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                                <div className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping" style={{ animationDuration: '2s' }} />
                             )}
-                            <div className={`relative z-10 w-40 h-40 rounded-full border-4 shadow-xl flex items-center justify-center transition-all duration-500 ${isRecording ? (isPaused ? 'border-amber-500/30 bg-background scale-95 shadow-amber-500/5' : 'border-amber-500 bg-amber-500/5 scale-105 shadow-amber-500/30') : 'border-muted/50 bg-background/50 hover:border-amber-500/30 hover:bg-amber-500/5'}`}>
-                                <span className={`text-5xl font-mono tracking-tighter transition-colors duration-300 ${isRecording ? 'text-amber-500 drop-shadow-sm' : 'text-muted-foreground'} ${isPaused ? 'opacity-50' : ''}`}>
+                            <div className={`relative z-10 w-40 h-40 rounded-full border-4 shadow-xl flex items-center justify-center transition-all duration-500 ${isRecording ? (isPaused ? 'border-teal-500/30 bg-background scale-95 shadow-teal-500/5' : 'border-teal-500 bg-teal-500/5 scale-105 shadow-teal-500/30') : 'border-muted/50 bg-background/50 hover:border-teal-500/30 hover:bg-teal-500/5'}`}>
+                                <span className={`text-5xl font-mono tracking-tighter transition-colors duration-300 ${isRecording ? 'text-teal-500 drop-shadow-sm' : 'text-muted-foreground'} ${isPaused ? 'opacity-50' : ''}`}>
                                     {formatTime(recordingTime)}
                                 </span>
                             </div>
@@ -187,7 +187,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                             {!isRecording ? (
                                 <Button
                                     size="lg"
-                                    className="rounded-full w-20 h-20 shadow-lg shadow-amber-500/20 bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition-transform duration-300 hover:scale-110 group border-4 border-white dark:border-background"
+                                    className="rounded-full w-20 h-20 shadow-lg shadow-teal-500/20 bg-gradient-to-br from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 transition-transform duration-300 hover:scale-110 group border-4 border-white dark:border-background"
                                     onClick={startRecording}
                                 >
                                     <Mic className="w-10 h-10 text-white group-hover:scale-110 transition-transform" />
@@ -197,7 +197,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                                     {isPaused ? (
                                         <Button
                                             size="lg"
-                                            className="rounded-full w-16 h-16 shadow-lg shadow-amber-500/20 border-4 border-background bg-gradient-to-br from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition-all hover:scale-105"
+                                            className="rounded-full w-16 h-16 shadow-lg shadow-teal-500/20 border-4 border-background bg-gradient-to-br from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 transition-all hover:scale-105"
                                             onClick={resumeRecording}
                                             title="Retomar Gravação"
                                         >
@@ -207,7 +207,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                                         <Button
                                             size="lg"
                                             variant="outline"
-                                            className="rounded-full w-16 h-16 shadow-md border-amber-500/50 text-amber-600 bg-background hover:bg-amber-500/10 hover:border-amber-500 transition-all hover:scale-105"
+                                            className="rounded-full w-16 h-16 shadow-md border-teal-500/50 text-teal-600 bg-background hover:bg-teal-500/10 hover:border-teal-500 transition-all hover:scale-105"
                                             onClick={pauseRecording}
                                             title="Pausar Gravação"
                                         >
@@ -238,7 +238,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                             ? 'Toque no microfone para iniciar a gravação.'
                             : isPaused
                                 ? 'Gravação pausada. Toque no play para retomar.'
-                                : <span className="text-amber-600/80 animate-pulse-soft">Gravando... Fale os detalhes da consulta naturalmente.</span>
+                                : <span className="text-teal-600/80 animate-pulse-soft">Gravando... Fale os detalhes da consulta naturalmente.</span>
                         }
                     </p>
                 </CardFooter>

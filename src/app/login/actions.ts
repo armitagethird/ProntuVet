@@ -28,12 +28,25 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
     const supabase = await createClient()
 
-    const data = {
-        email: formData.get('email') as string,
-        password: formData.get('password') as string,
-    }
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+    const firstName = formData.get('first_name') as string
+    const lastName = formData.get('last_name') as string
+    const birthDate = formData.get('birth_date') as string
+    const specialization = formData.get('specialization_other') || formData.get('specialization') as string
 
-    const { error } = await supabase.auth.signUp(data)
+    const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                first_name: firstName,
+                last_name: lastName,
+                birth_date: birthDate,
+                specialization: specialization,
+            }
+        }
+    })
 
     if (error) {
         console.error("Signup Supabase Error:", error)

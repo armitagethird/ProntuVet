@@ -56,16 +56,35 @@ export async function POST(req: NextRequest) {
         }
 
         const systemPrompt = `Você é um assistente veterinário de alto nível.
-Sua tarefa é receber a transcrição bruta de uma consulta veterinária e organizá-la formalmente em um texto clínico estruturado de acordo com o MODELO DE PRONTUÁRIO fornecido abaixo.
+Sua tarefa é receber a transcrição bruta de uma consulta veterinária e organizá-la formalmente.
+Obrigatório:
+1. Prontuário Principal: Mantenha um tom estritamente profissional, científico e técnico. O vocabulário DEVE ser técnico veterinário, utilizando sempre os termos científicos adequados e jargões da medicina veterinária, garantindo que o texto pareça ter sido escrito por um médico veterinário experiente. Não use linguagem leiga aqui em hipótese alguma. Estruture de acordo com o MODELO DE PRONTUÁRIO fornecido.
+2. Identifique os seguintes dados extraídos da consulta (se não informados, deixe nulo ou vazio):
+   - "animal_name": Nome do animal (string)
+   - "animal_species": Espécie do animal (ex: cão, gato) (string)
+   - "tutor_name": Nome do tutor (string)
+   - "tutor_summary": Um resumo simples, claro e amigável da consulta, voltado para o tutor (string).
+   - "vet_summary": Um resumo técnico, objetivo e direto da consulta, voltado para passagem de caso para outro veterinário (string).
+   - "tags": Lista de tags/categorias da consulta (ex: ["dermatologia", "retorno", "vacinação", "canino"]) (array de strings, máximo 5).
 
-MODELO DE PRONTUÁRIO (Siga ESTA exata estrutura de chaves):
+MODELO DE PRONTUÁRIO Mestre (Siga ESTA exata estrutura de chaves OBRIGATORIAMENTE para o objeto "prontuario"):
 ${templateContent}
 
-Instruções adicionais:
-1. Mantenha um tom estritamente profissional e técnico.
-2. Identifique veterinário, tutor e animal quando possível. Diferencie o que foi relatado pelo tutor do que foi observado pelo veterinário.
-3. Não invente informações. Se uma informação pedida no modelo de prontuário não foi dita, deixe o campo em branco ou preencha com "Não informado" ou "Não mencionado".
-4. Formate a saída OBRIGATORIAMENTE com as chaves do modelo fornecido, como um objeto JSON estruturado onde as chaves principais são as seções listadas no modelo e os valores SÃO OBRIGATORIAMENTE STRINGS. Nunca crie sub-objetos ou arrays adicionais no JSON retornado. Se houver múltiplos dados para uma seção, agrupe-os em um único texto (string).`
+Instruções finais do formato de saída:
+Formate a saída OBRIGATORIAMENTE como um único objeto JSON estruturado da seguinte forma:
+{
+  "animal_name": "...",
+  "animal_species": "...",
+  "tutor_name": "...",
+  "tutor_summary": "...",
+  "vet_summary": "...",
+  "tags": ["...", "..."],
+  "prontuario": {
+    "Chave 1 do Modelo": "...",
+    "Chave 2 do Modelo": "..."
+  }
+}
+Não fuja dessa estrutura raiz. Os valores dentro de "prontuario" DEVEM ser strings simples e usar as chaves exatas do MODELO DE PRONTUÁRIO.`
 
         // 1. Convert Blob to File object for OpenAI
         const arrayBuffer = await file.arrayBuffer()
@@ -100,38 +119,83 @@ Instruções adicionais:
             throw new Error("Falha ao gerar estrutura JSON a partir da GPT.")
         }
 
-        const structuredContent = JSON.parse(structuredContentString)
+        const openaiResult = JSON.parse(structuredContentString)
+
+        // Extract root info
+        const animalNameRaw = openaiResult.animal_name;
+        const animalName = (animalNameRaw && animalNameRaw !== 'Não informado' && animalNameRaw !== 'Não mencionado') ? String(animalNameRaw).trim() : null;
+
+        const animalSpecies = openaiResult.animal_species || null;
+        const tutorName = openaiResult.tutor_name || null;
+        const tutorSummary = openaiResult.tutor_summary || null;
+        const vetSummary = openaiResult.vet_summary || null;
+        const tags = Array.isArray(openaiResult.tags) ? openaiResult.tags : [];
+        const prontuario = openaiResult.prontuario || openaiResult; // Fallback in case AI ignores wrapper
 
         // Generate a title safely
         let title = 'Consulta Veterinária'
-        // Try to automatically guess a title based on typical template fields
-        const possiblePatientKeys = ['Paciente', 'paciente', 'Nome do animal', 'Nome', 'Identificação', 'Animal']
-        for (const key of possiblePatientKeys) {
-            if (structuredContent[key] && typeof structuredContent[key] === 'string' && structuredContent[key] !== 'Não informado' && structuredContent[key] !== 'Não mencionado') {
-                title = `Consulta: ${structuredContent[key].substring(0, 40)}`
-                break
+        if (animalName) {
+            title = `Consulta: ${animalName.substring(0, 40)}`
+        }
+
+        // 4. Handle Animals table (Find or Create)
+        let animalId = null;
+        if (animalName) {
+            // Check if animal exists for this user (case insensitive-ish)
+            const { data: existingAnimals, error: fetchError } = await supabase
+                .from('animals')
+                .select('id, name')
+                .eq('user_id', user.id)
+                .ilike('name', animalName)
+                .limit(1);
+
+            if (existingAnimals && existingAnimals.length > 0) {
+                animalId = existingAnimals[0].id;
+            } else {
+                // Create new animal
+                const { data: newAnimal, error: createError } = await supabase
+                    .from('animals')
+                    .insert({
+                        user_id: user.id,
+                        name: animalName,
+                        species: animalSpecies,
+                    })
+                    .select('id')
+                    .single()
+
+                if (!createError && newAnimal) {
+                    animalId = newAnimal.id;
+                } else {
+                    console.error("Erro ao criar animal:", createError);
+                    // Silently continue, animalId remains null
+                }
             }
         }
 
-        // 4. Save to Database
+        // 5. Save to Database
         const { data: dbData, error: dbError } = await supabase
             .from('consultations')
             .insert({
                 user_id: user.id,
-                mode: 'vet', // hardcode to vet to satisfy check constraint
+                mode: 'vet',
                 title: title,
                 transcription: transcribedText,
-                structured_content: structuredContent
+                structured_content: prontuario,
+                animal_id: animalId,
+                tutor_name: tutorName,
+                tutor_summary: tutorSummary,
+                vet_summary: vetSummary,
+                tags: tags
             })
             .select('id')
             .single()
 
         if (dbError) {
-            console.error("Erro no resgistro do banco:", dbError)
+            console.error("Erro no registro do banco:", dbError)
             throw new Error("Falha ao salvar no banco de dados.")
         }
 
-        // 5. Return Success
+        // 6. Return Success
         return NextResponse.json({ success: true, consultationId: dbData.id })
 
     } catch (error: any) {
