@@ -1,5 +1,10 @@
-import { AudioRecorder } from '@/components/audio-recorder'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
+
+const AudioRecorder = dynamic(() => import('@/components/audio-recorder').then(mod => mod.AudioRecorder), {
+    ssr: false,
+    loading: () => <div className="p-12 text-center text-muted-foreground bg-card/30 border border-border/20 rounded-3xl animate-pulse flex flex-col items-center justify-center min-h-[350px]">Carregando módulo de áudio...</div>
+})
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'

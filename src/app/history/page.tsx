@@ -21,6 +21,7 @@ export default async function HistoryPage() {
             animals ( name, species )
         `)
         .order('created_at', { ascending: false })
+        .limit(30)
 
     return (
         <div className="flex-1 w-full max-w-5xl mx-auto space-y-8 animate-fade-in-up pt-8 px-4 pb-16">

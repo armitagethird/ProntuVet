@@ -5,10 +5,30 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { Save, Copy, Check, ArrowLeft, Loader2, FileText, CalendarCheck, FileEdit, Tag, Stethoscope, User } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Trash2, AlertTriangle, History as HistoryIcon, ArrowRight } from 'lucide-react'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useEffect } from 'react'
 
 interface ConsultationData {
     id: string
@@ -41,6 +61,81 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [animalName, setAnimalName] = useState(data.animals?.name || '')
     const [animalSpecies, setAnimalSpecies] = useState(data.animals?.species || '')
     const [tutorName, setTutorName] = useState(data.tutor_name || '')
+
+    // History and Matching States
+    const [history, setHistory] = useState<any[]>([])
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+    const [matchingAnimal, setMatchingAnimal] = useState<any | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    // Check for matching animals if we don't have a firm link yet or just to be sure
+    useEffect(() => {
+        const checkAnimalMatch = async () => {
+            if (!animalName || data.animal_id) return
+
+            try {
+                // Search for animals with the same name
+                const res = await fetch(`/api/animals/search?name=${encodeURIComponent(animalName)}`)
+                if (res.ok) {
+                    const { animals } = await res.json()
+                    if (animals && animals.length > 0) {
+                        setMatchingAnimal(animals[0])
+                    }
+                }
+            } catch (err) {
+                console.error("Match check error", err)
+            }
+        }
+
+        checkAnimalMatch()
+    }, [animalName, data.animal_id])
+
+    // Load history when animal_id is available
+    useEffect(() => {
+        const loadHistory = async () => {
+            const id = data.animal_id || (matchingAnimal?.id)
+            if (!id) return
+
+            setIsLoadingHistory(true)
+            try {
+                const res = await fetch(`/api/animals/${id}/history`)
+                if (res.ok) {
+                    const { history: historyData } = await res.json()
+                    setHistory(historyData.filter((h: any) => h.id !== data.id)) // don't show current
+                }
+            } catch (err) {
+                console.error("History load error", err)
+            } finally {
+                setIsLoadingHistory(false)
+            }
+        }
+
+        loadHistory()
+    }, [data.animal_id, matchingAnimal?.id, data.id])
+
+    const handleImportData = () => {
+        if (!matchingAnimal) return
+        setTutorName(matchingAnimal.last_tutor_name || tutorName)
+        setAnimalSpecies(matchingAnimal.species || animalSpecies)
+        toast.success(`Dados de ${animalName} importados do histórico!`)
+        setMatchingAnimal(null) // Clear banner after import
+    }
+
+    const handleDelete = async () => {
+        setIsDeleting(true)
+        try {
+            const res = await fetch(`/api/consultations/${data.id}`, { method: 'DELETE' })
+            if (res.ok) {
+                toast.success('Prontuário excluído com sucesso')
+                router.push('/history')
+            } else {
+                throw new Error()
+            }
+        } catch (err) {
+            toast.error('Erro ao excluir prontuário')
+            setIsDeleting(false)
+        }
+    }
 
     // Format content as plain text for copying
     const getFormattedText = () => {
@@ -137,8 +232,54 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                             <><Copy className="w-4 h-4" /> Copiar Dados</>
                         )}
                     </Button>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger render={<Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full h-10 w-10" />}>
+                            <Trash2 className="w-5 h-5" />
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-3xl border-destructive/20">
+                            <AlertDialogHeader>
+                                <AlertDialogTitle className="text-xl font-bold">Excluir Prontuário?</AlertDialogTitle>
+                                <AlertDialogDescription className="text-base text-muted-foreground">
+                                    Esta ação não pode ser desfeita. O prontuário de <strong>{animalName || 'este animal'}</strong> será removido permanentemente.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="gap-2 sm:gap-0">
+                                <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-full">
+                                    {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                                    Sim, Excluir
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
             </div>
+
+            {/* Animal Recognition Banner */}
+            {matchingAnimal && !isEditing && (
+                <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-fade-in-up">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-teal-500 rounded-full text-white">
+                            <HistoryIcon className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="font-bold text-teal-800 dark:text-teal-300">Paciente Identificado!</p>
+                            <p className="text-sm text-teal-700/80 dark:text-teal-400">
+                                Já atendemos um <strong>{animalName}</strong> antes. É o mesmo animal?
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Button size="sm" onClick={handleImportData} className="flex-1 sm:flex-none rounded-full bg-teal-600 hover:bg-teal-700 text-white gap-2">
+                            Sim, importar dados <ArrowRight className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setMatchingAnimal(null)} className="flex-1 sm:flex-none rounded-full text-teal-700 hover:bg-teal-500/10">
+                            Não, novo pet
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Card className="shadow-2xl border-border/50 bg-card/80 backdrop-blur-xl overflow-hidden animate-fade-in-up-delay-1">
                 <CardHeader className="border-b border-border/40 bg-gradient-to-br from-teal-500/5 via-blue-500/5 to-transparent px-6 sm:px-10 py-8 relative">
@@ -169,13 +310,20 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                                 </div>
                                                 <div className="flex-1 min-w-[150px]">
                                                     <label className="text-xs font-semibold text-muted-foreground ml-1">Espécie</label>
-                                                    <input
-                                                        type="text"
-                                                        value={animalSpecies}
-                                                        onChange={e => setAnimalSpecies(e.target.value)}
-                                                        placeholder="Ex: Canino"
-                                                        className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
-                                                    />
+                                                    <Select value={animalSpecies} onValueChange={(val) => setAnimalSpecies(val || '')}>
+                                                        <SelectTrigger className="w-full h-9 bg-background focus:ring-teal-500">
+                                                            <SelectValue placeholder="Selecione" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Canino">Canino</SelectItem>
+                                                            <SelectItem value="Felino">Felino</SelectItem>
+                                                            <SelectItem value="Ave">Ave</SelectItem>
+                                                            <SelectItem value="Réptil">Réptil</SelectItem>
+                                                            <SelectItem value="Equino">Equino</SelectItem>
+                                                            <SelectItem value="Roedor">Roedor</SelectItem>
+                                                            <SelectItem value="Outros">Outros</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
                                                 <div className="flex-1 min-w-[200px]">
                                                     <label className="text-xs font-semibold text-muted-foreground ml-1">Tutor</label>
@@ -246,6 +394,11 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                 {(tutorSummary || isEditing) && (
                                     <TabsTrigger value="tutor" className="rounded-lg px-4 py-2 font-medium flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-teal-600 data-[state=active]:shadow-sm transition-all whitespace-nowrap">
                                         <User className="w-4 h-4" /> Resumo para Tutor
+                                    </TabsTrigger>
+                                )}
+                                {(data.animal_id || matchingAnimal) && (
+                                    <TabsTrigger value="history" className="rounded-lg px-4 py-2 font-medium flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-teal-600 data-[state=active]:shadow-sm transition-all whitespace-nowrap">
+                                        <HistoryIcon className="w-4 h-4" /> Histórico
                                     </TabsTrigger>
                                 )}
                             </TabsList>

@@ -1,0 +1,74 @@
+"use client"
+
+import { useRef } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Home, PawPrint, FileText, User } from 'lucide-react'
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
+
+const dockItems = [
+  { href: '/dashboard', icon: Home, label: 'Início', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+  { href: '/history', icon: PawPrint, label: 'Pacientes', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+  { href: '/templates', icon: FileText, label: 'Modelos', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
+  { href: '/profile', icon: User, label: 'Perfil', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+]
+
+function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mouseX: any }) {
+  const ref = useRef<HTMLDivElement>(null)
+  
+  const distance = useTransform(mouseX, (val: number) => {
+    const bounds = ref.current?.getBoundingClientRect() ?? { x: 0, width: 0 }
+    return val - bounds.x - bounds.width / 2
+  })
+  
+  const widthSync = useTransform(distance, [-120, 0, 120], [48, 72, 48])
+  const width = useSpring(widthSync, { mass: 0.1, stiffness: 150, damping: 12 })
+  
+  const iconSizeSync = useTransform(distance, [-120, 0, 120], [22, 32, 22])
+  const iconSize = useSpring(iconSizeSync, { mass: 0.1, stiffness: 150, damping: 12 })
+
+  return (
+    <motion.div
+      ref={ref}
+      style={{ width, height: width }}
+      className={`relative flex items-center justify-center rounded-xl transition-colors duration-200 group ${
+        isActive 
+          ? `${item.bgColor} ring-1 ring-border shadow-inner text-foreground` 
+          : 'bg-muted/50 hover:bg-muted border border-border/30 text-muted-foreground'
+      }`}
+    >
+      <Link href={item.href} className="flex items-center justify-center w-full h-full">
+        <div className="absolute bottom-[calc(100%+12px)] px-3 py-1.5 text-xs font-semibold text-foreground bg-popover/95 backdrop-blur-md border border-border/50 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-xl z-50 transform group-hover:-translate-y-1">
+          {item.label}
+        </div>
+        <motion.div style={{ width: iconSize, height: iconSize }} className={`flex items-center justify-center ${item.color}`}>
+          <item.icon className="w-full h-full" />
+        </motion.div>
+      </Link>
+    </motion.div>
+  )
+}
+
+export function DockNav() {
+  const mouseX = useMotionValue(Infinity)
+  const pathname = usePathname()
+
+  if (pathname === '/login' || pathname === '/') {
+    return null;
+  }
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+      <motion.nav
+        onMouseMove={(e) => mouseX.set(e.pageX)}
+        onMouseLeave={() => mouseX.set(Infinity)}
+        className="flex items-end gap-3 px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
+      >
+        {dockItems.map((item) => {
+          const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/')
+          return <DockIcon key={item.href} item={item} isActive={isActive} mouseX={mouseX} />
+        })}
+      </motion.nav>
+    </div>
+  )
+}

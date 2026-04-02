@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import { DockNav } from "@/components/ui/dock-nav";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-
+import { SpeedInsights } from "@vercel/speed-insights/next";
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
@@ -27,7 +28,9 @@ export default function RootLayout({
           <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_800px_at_100%_200px,#0284c71a,transparent)]"></div>
         </div>
         {children}
+        <DockNav />
         <Toaster />
+        <SpeedInsights />
       </body>
     </html>
   );

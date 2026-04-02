@@ -1,6 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export async function GET(
+    request: NextRequest,
+    props: { params: Promise<{ id: string }> }
+) {
+    const params = await props.params;
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        }
+
+        const { data, error } = await supabase
+            .from('consultations')
+            .select('*, animals(name, species)')
+            .eq('id', params.id)
+            .eq('user_id', user.id)
+            .single()
+
+        if (error || !data) {
+            return NextResponse.json({ error: 'Consulta não encontrada' }, { status: 404 })
+        }
+
+        return NextResponse.json({ success: true, data })
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+}
+
 export async function PATCH(
     request: NextRequest,
     props: { params: Promise<{ id: string }> }
@@ -21,6 +51,13 @@ export async function PATCH(
             return NextResponse.json({ error: 'Nenhum dado para atualizar enviado' }, { status: 400 })
         }
 
+        // 1. Fetch current consultation to get animal_id
+        const { data: currentConsultation } = await supabase
+            .from('consultations')
+            .select('animal_id')
+            .eq('id', params.id)
+            .single();
+
         const updateData: any = {}
         if (structured_content !== undefined) updateData.structured_content = structured_content;
         if (tutor_summary !== undefined) updateData.tutor_summary = tutor_summary;
@@ -35,38 +72,52 @@ export async function PATCH(
             if (animal_name === '') {
                 updateData.animal_id = null;
             } else if (animal_name) {
-                // Try to find the animal first
-                const { data: existingAnimals } = await supabase
-                    .from('animals')
-                    .select('id, name')
-                    .eq('user_id', user.id)
-                    .ilike('name', animal_name)
-                    .limit(1);
-
-                if (existingAnimals && existingAnimals.length > 0) {
-                    updateData.animal_id = existingAnimals[0].id;
-
-                    // Update species if changed
-                    if (animal_species !== undefined && animal_species !== '') {
-                        await supabase
-                            .from('animals')
-                            .update({ species: animal_species })
-                            .eq('id', existingAnimals[0].id);
-                    }
-                } else {
-                    // Create new animal
-                    const { data: newAnimal } = await supabase
+                
+                // FIXED LOGIC: If there's already an animal_id, update THAT record to avoid duplicates
+                if (currentConsultation?.animal_id) {
+                    const updateAnimalObj: any = { name: animal_name };
+                    if (animal_species !== undefined) updateAnimalObj.species = animal_species;
+                    
+                    await supabase
                         .from('animals')
-                        .insert({
-                            user_id: user.id,
-                            name: animal_name,
-                            species: animal_species || null,
-                        })
-                        .select('id')
-                        .single()
+                        .update(updateAnimalObj)
+                        .eq('id', currentConsultation.animal_id);
+                    
+                    updateData.animal_id = currentConsultation.animal_id;
+                } else {
+                    // Try to find an animal with this name first for the user
+                    const { data: existingAnimals } = await supabase
+                        .from('animals')
+                        .select('id, name')
+                        .eq('user_id', user.id)
+                        .ilike('name', animal_name)
+                        .limit(1);
 
-                    if (newAnimal) {
-                        updateData.animal_id = newAnimal.id;
+                    if (existingAnimals && existingAnimals.length > 0) {
+                        updateData.animal_id = existingAnimals[0].id;
+
+                        // Update species if changed
+                        if (animal_species !== undefined && animal_species !== '') {
+                            await supabase
+                                .from('animals')
+                                .update({ species: animal_species })
+                                .eq('id', existingAnimals[0].id);
+                        }
+                    } else {
+                        // Create new animal
+                        const { data: newAnimal } = await supabase
+                            .from('animals')
+                            .insert({
+                                user_id: user.id,
+                                name: animal_name,
+                                species: animal_species || null,
+                            })
+                            .select('id')
+                            .single()
+
+                        if (newAnimal) {
+                            updateData.animal_id = newAnimal.id;
+                        }
                     }
                 }
             }
@@ -89,6 +140,38 @@ export async function PATCH(
 
     } catch (error: any) {
         console.error("API error:", error)
+        return NextResponse.json({ error: error.message || 'Erro interno no servidor' }, { status: 500 })
+    }
+}
+
+export async function DELETE(
+    request: NextRequest,
+    props: { params: Promise<{ id: string }> }
+) {
+    const params = await props.params;
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        }
+
+        const { error } = await supabase
+            .from('consultations')
+            .delete()
+            .eq('id', params.id)
+            .eq('user_id', user.id)
+
+        if (error) {
+            console.error("Erro ao deletar consulta:", error)
+            return NextResponse.json({ error: 'Erro ao excluir o prontuário' }, { status: 500 })
+        }
+
+        return NextResponse.json({ success: true })
+
+    } catch (error: any) {
+        console.error("Delete API error:", error)
         return NextResponse.json({ error: error.message || 'Erro interno no servidor' }, { status: 500 })
     }
 }
