@@ -17,17 +17,17 @@ export default async function DashboardLayout({
         <div className="min-h-screen flex flex-col bg-background text-foreground">
             <header className="border-b bg-card text-card-foreground shadow-sm px-4 h-14 flex justify-between items-center sticky top-0 z-10 overflow-visible">
                 <div className="font-bold text-lg tracking-tight flex items-center gap-3">
-                    <div className="relative animate-float scale-[1.7] origin-center translate-y-2 translate-x-1">
-                        <Image src="/logo.png" alt="ProntuVet Logo" width={40} height={40} className="object-contain drop-shadow-sm" priority />
-                    </div>
-                    <span className="ml-3">ProntuVet</span>
+                    <span className="ml-3 font-extrabold text-foreground tracking-tighter">ProntuVet</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden sm:inline-block">
                         {user?.email}
                     </span>
                     <form action={logout}>
-                        <Button variant="outline" size="sm">Sair</Button>
+                        <Button type="submit" variant="ghost" size="sm" className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10 font-semibold transition-colors">
+                            <User className="w-4 h-4 mr-2" />
+                            Sair
+                        </Button>
                     </form>
                 </div>
             </header>

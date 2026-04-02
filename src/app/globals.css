@@ -68,12 +68,36 @@
     50% { transform: translateY(-5px); }
   }
 
+  @keyframes logo-pulse-glow {
+    0%, 100% { 
+      transform: scale(1);
+      filter: drop-shadow(0 0 0px var(--primary));
+    }
+    50% { 
+      transform: scale(1.08);
+      filter: drop-shadow(0 0 15px var(--primary));
+    }
+  }
+
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes progress-loop {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
   /* Custom Animation Utilities that Tailwind V4 automatic pick up */
   --animate-fade-in-up: fade-in-up 0.5s ease-out forwards;
   --animate-fade-in-up-delay-1: fade-in-up 0.5s ease-out 0.1s forwards;
   --animate-fade-in-up-delay-2: fade-in-up 0.5s ease-out 0.2s forwards;
   --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
   --animate-float: float 4s ease-in-out infinite;
+  --animate-logo-pulse-glow: logo-pulse-glow 2s ease-in-out infinite;
+  --animate-spin-slow: spin-slow 8s linear infinite;
+  --animate-progress-loop: progress-loop 2s infinite ease-in-out;
 }
 
 :root {
