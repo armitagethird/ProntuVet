@@ -1,0 +1,83 @@
+﻿
+> clinicscribe-ai@0.1.0 lint
+> eslint
+
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\api\animals\[id]\history\route.ts
+  31:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\api\animals\search\route.ts
+  55:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\api\consultations\[id]\route.ts
+   29:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   78:44  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  141:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  173:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\api\process-consultation\route.ts
+  147:51  warning  'fetchError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  203:21  error    Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\consultation\new\page.tsx
+  2:10  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\history\page.tsx
+  11:34  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  58:61  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\login\page.tsx
+  108:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\profile\ClientProfile.tsx
+  12:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  26:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  53:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\profile\loading.tsx
+  1:10  warning  'User' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\templates\[id]\edit\page.tsx
+   77:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\app\templates\new\page.tsx
+   59:25   error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  109:161  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  109:182  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  109:185  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  109:210  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\components\audio-recorder.tsx
+  119:26  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  127:25  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\components\consultation-result.tsx
+   17:8    warning  'Link' is defined but never used                                 @typescript-eslint/no-unused-vars
+   19:18   warning  'AlertTriangle' is defined but never used                        @typescript-eslint/no-unused-vars
+   66:12   warning  'history' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   66:44   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   67:12   warning  'isLoadingHistory' is assigned a value but never used            @typescript-eslint/no-unused-vars
+   68:58   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  104:55   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  134:18   warning  'err' is defined but never used                                  @typescript-eslint/no-unused-vars
+  148:23   warning  '_' is defined but never used                                    @typescript-eslint/no-unused-vars
+  166:18   warning  'err' is defined but never used                                  @typescript-eslint/no-unused-vars
+  197:18   warning  'error' is defined but never used                                @typescript-eslint/no-unused-vars
+  499:146  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  499:164  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\components\history-list.tsx
+   8:15  warning  'FileText' is defined but never used      @typescript-eslint/no-unused-vars
+  18:26  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\components\ui\dock-nav.tsx
+  16:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  16:87  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Projetos Antigravity\Estudos\Projetos Saas\vet ia\src\lib\supabase\middleware.ts
+  18:58  warning  'options' is defined but never used  @typescript-eslint/no-unused-vars
+
+Ô£û 44 problems (28 errors, 16 warnings)
+
