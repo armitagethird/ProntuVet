@@ -2,8 +2,6 @@
 
 > Copiloto clínico com IA para médicos-veterinários. Transforma a conversa da consulta em um prontuário estruturado, completo e pronto para revisão — em segundos.
 
-**Demo ao vivo →** [clinic-scribe-ai-1-1.vercel.app](https://clinic-scribe-ai-1-1.vercel.app)
-
 ---
 
 ## O problema
