@@ -1,95 +1,155 @@
 # 🐾 ProntuVet
 
-> Copiloto clínico com IA para médicos-veterinários — da consulta ao prontuário em segundos.
+> Copiloto clínico com IA para médicos-veterinários. Transforma a conversa da consulta em um prontuário estruturado, completo e pronto para revisão — em segundos.
 
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
-![LLM](https://img.shields.io/badge/LLM-Powered-8B5CF6?style=flat)
+**Demo ao vivo →** [clinic-scribe-ai-1-1.vercel.app](https://clinic-scribe-ai-1-1.vercel.app)
 
 ---
 
-## O que é o ProntuVet?
+## O problema
 
-O **ProntuVet** é uma aplicação web que transforma a conversa da consulta veterinária em um prontuário estruturado — de forma prática, rápida e intuitiva.
+Veterinários gastam entre 30% e 40% do tempo de trabalho em documentação — preenchendo prontuários, redigindo receitas e organizando registros clínicos. Esse tempo roubado do atendimento gera burnout, erros de registro e queda na qualidade do cuidado com o animal.
 
-Funciona como um **copiloto clínico**: o veterinário conduz o atendimento normalmente enquanto o sistema escuta, processa e gera um prontuário completo ao final. Menos tempo com registros, mais tempo com o paciente.
+O ProntuVet resolve isso.
+
+---
+
+## O que é
+
+O ProntuVet é uma aplicação web que age como um **copiloto clínico**: durante a consulta, o veterinário conduz o atendimento normalmente enquanto o sistema escuta, transcreve e estrutura automaticamente um prontuário completo. Ao final, o profissional revisa, ajusta se necessário e confirma — sem digitar do zero.
+
+A proposta não é ser um gravador ou um simples transcritor. É ser um auxiliador inteligente que entende o contexto da medicina veterinária e organiza as informações de forma clínica e padronizada.
 
 ---
 
 ## Funcionalidades
 
-- 🎙️ **Escuta em tempo real** — captura a consulta durante o atendimento
-- 📋 **Geração automática de prontuário** — estruturado e pronto para revisão
-- ✏️ **Prontuário personalizável** — adapta o modelo ao padrão de cada clínica
-- 💾 **Histórico de prontuários** — registros organizados por animal e tutor
-- ⚡ **Interface rápida e intuitiva** — pensada para o fluxo real do consultório
+- **Escuta em tempo real** — captura o áudio da consulta diretamente no navegador
+- **Transcrição automática** — converte fala em texto com reconhecimento específico para terminologia veterinária
+- **Geração de prontuário estruturado** — organiza as informações em anamnese, exame físico, hipóteses diagnósticas, plano terapêutico e orientações ao tutor
+- **Templates personalizáveis** — cada clínica ou profissional pode adaptar o modelo de prontuário à sua realidade
+- **Resumo para o tutor** — gera uma versão em linguagem acessível para enviar ao responsável pelo animal
+- **Interface limpa e rápida** — pensada para não atrapalhar o fluxo do atendimento
 
 ---
 
 ## Stack
 
-| Tecnologia | Uso |
+| Camada | Tecnologia |
 |---|---|
-| Next.js + React | Frontend e estrutura da aplicação |
-| TypeScript | Tipagem e qualidade de código |
-| Tailwind CSS | Estilização |
-| LLM (IA) | Processamento de linguagem e geração do prontuário |
-| Supabase / SQL | Banco de dados e persistência |
+| Framework | Next.js 14 (App Router) |
+| Linguagem | TypeScript |
+| UI | React + shadcn/ui + Tailwind CSS |
+| Banco de dados | Supabase (PostgreSQL) |
+| Autenticação | Supabase Auth (Google OAuth) |
+| Backend serverless | Supabase Edge Functions |
+| IA — Transcrição | OpenAI Whisper API |
+| IA — Estruturação | OpenAI GPT-4o (em migração para Gemini 2.5 Flash) |
+| Deploy | Vercel |
+| Editor de código | Monaco Editor |
 
 ---
 
-## Como rodar localmente
+## Arquitetura resumida
+
+```
+Navegador (Next.js)
+    │
+    ├── Captura de áudio (Web Audio API)
+    │       └── Whisper API → transcrição em texto
+    │
+    ├── Geração de prontuário (LLM via prompt engineering)
+    │       └── GPT-4o / Gemini 2.5 Flash
+    │
+    └── Supabase
+            ├── PostgreSQL (pacientes, prontuários, templates)
+            ├── Auth (Google OAuth)
+            └── Edge Functions (handlers de API protegidos)
+```
+
+O processamento de IA acontece server-side via Edge Functions — as chaves de API nunca são expostas ao cliente.
+
+---
+
+## Rodando localmente
 
 ```bash
 # Clone o repositório
 git clone https://github.com/armitagethird/ProntuVet.git
+cd ProntuVet
 
 # Instale as dependências
 npm install
+
+# Configure as variáveis de ambiente
+cp .env.example .env.local
+# Preencha com suas chaves: Supabase URL, Supabase Anon Key, OpenAI API Key
+
+# Suba o banco de dados
+# Execute database_schema.sql e setup_templates.sql no seu projeto Supabase
 
 # Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-Acesse [http://localhost:3000](http://localhost:3000) no navegador.
-
-> **Requisito:** Configure as variáveis de ambiente no arquivo `.env.local` antes de rodar. Veja o `.env.example` como referência.
+Acesse `http://localhost:3000`.
 
 ---
 
-## Deploy
+## Variáveis de ambiente necessárias
 
-O projeto está hospedado na **Vercel**:
+```env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+OPENAI_API_KEY=
+```
 
-🔗 [clinic-scribe-ai-1-1.vercel.app](https://clinic-scribe-ai-1-1.vercel.app)
-
----
-
-## Sobre o projeto
-
-O ProntuVet nasceu da observação de um problema real: veterinários perdem tempo valioso preenchendo prontuários manualmente após cada consulta. A proposta não é substituir o profissional — é liberar tempo para que ele foque no que importa: o atendimento.
-
-Desenvolvido por **Romero Saraiva** como projeto de portfólio, unindo desenvolvimento web moderno e inteligência artificial aplicada.
+> ⚠️ Nunca commite o arquivo `.env.local`. Ele já está no `.gitignore`.
 
 ---
 
 ## Roadmap
 
-- [ ] Histórico completo por animal
-- [ ] Múltiplos modelos de prontuário
-- [ ] Resumo para tutor
-- [ ] Busca inteligente em prontuários
-- [ ] Dashboard de atendimentos
-- [ ] Tags por tipo de consulta
+- [x] Escuta e transcrição da consulta
+- [x] Geração automática de prontuário estruturado
+- [x] Templates personalizáveis por clínica
+- [x] Resumo em linguagem acessível para o tutor
+- [ ] Migração para Gemini 2.5 Flash (redução de custo ~87%)
+- [ ] Histórico de consultas por animal
+- [ ] Busca inteligente em prontuários anteriores
+- [ ] Integração com WhatsApp para envio do resumo ao tutor
+- [ ] Múltiplos profissionais por clínica (plano Clínica)
+- [ ] Relatórios e dashboards de uso
+- [ ] Integração com sistema de pagamento recorrente (Asaas)
+- [ ] App mobile (PWA)
 
 ---
 
-## Contato
+## Sobre o autor
 
-**Romero Saraiva** — ServiceNow Developer & Engenheiro de IA
+**Romero Santos Saraiva** — [armitagethird](https://github.com/armitagethird)
 
-📧 romerosaraiva4@gmail.com
-🌐 [romerosaraiva.com](romerosaraiva.com)
-💼 [LinkedIn](https://linkedin.com/in/romerosaraiva)
+Desenvolvedor baseado em São Luís, MA. Especialista em ServiceNow com foco em automação de processos e desenvolvimento de plataforma. Constrói produtos com IA aplicada a problemas reais — o ProntuVet nasceu da observação direta de como a burocracia documental afasta veterinários do que importa: cuidar dos animais.
+
+- 🌐 Portfolio: [romerosaraiva.com](https://romerosaraiva.com)
+- 💼 LinkedIn: [linkedin.com/in/romero-saraiva](https://linkedin.com/in/romero-saraiva)
+- 🐙 GitHub: [github.com/armitagethird](https://github.com/armitagethird)
+- 📋 ServiceNow Resume: [learning.servicenow.com](https://learning.servicenow.com/lxp?id=nl_public&user=romerosara016879)
+
+**Certificações relevantes**
+- ServiceNow Certified System Administrator (Associate)
+- Flow Designer — Now University
+- EF SET English C2 (nível máximo)
+- Formação Engenheiro de Agentes de IA — Asimov Academy
+
+---
+
+## Licença
+
+MIT — use, estude, adapte e contribua.
+
+Sugestões, issues e pull requests são bem-vindos. Se este projeto te ajudou ou te inspirou, deixa uma ⭐ no repositório.
+
+---
+
+> ⚠️ Em desenvolvimento ativo. A aplicação está em fase de validação com clínicas veterinárias reais. Feedback é sempre bem-vindo.
