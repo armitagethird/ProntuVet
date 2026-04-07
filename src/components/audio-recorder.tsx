@@ -36,7 +36,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
     const startRecording = async () => {
         try {
-            setErrorDetails(null)
+            resetRecorder() // Ensure a clean slate
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
             const mediaRecorder = new MediaRecorder(stream)
 
@@ -56,7 +56,14 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
             setIsPaused(false)
 
             timerRef.current = setInterval(() => {
-                setRecordingTime((prev) => prev + 1)
+                setRecordingTime((prev) => {
+                    if (prev >= 599) { // 10 minutes limit (600s)
+                        stopRecording()
+                        toast.info('Limite de 10 minutos atingido. Processando áudio...')
+                        return 600
+                    }
+                    return prev + 1
+                })
             }, 1000)
 
             toast.success('Gravação iniciada')
@@ -80,7 +87,14 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
             mediaRecorderRef.current.resume()
             setIsPaused(false)
             timerRef.current = setInterval(() => {
-                setRecordingTime((prev) => prev + 1)
+                setRecordingTime((prev) => {
+                    if (prev >= 599) {
+                        stopRecording()
+                        toast.info('Limite de 10 minutos atingido. Processando áudio...')
+                        return 600
+                    }
+                    return prev + 1
+                })
             }, 1000)
         }
     }
@@ -132,6 +146,19 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
         }
     }
 
+    const resetRecorder = () => {
+        setRecordingTime(0)
+        setErrorDetails(null)
+        setIsRecording(false)
+        setIsPaused(false)
+        setIsProcessing(false)
+        audioChunksRef.current = []
+        if (timerRef.current) clearInterval(timerRef.current)
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop()
+        }
+    }
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
@@ -149,9 +176,19 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
             <CardContent className="flex flex-col items-center justify-center py-12 space-y-10 min-h-[350px]">
                 {errorDetails && (
-                    <div className="w-full p-4 mb-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex items-start gap-3 text-sm animate-fade-in-up font-medium">
-                        <AlertCircle className="w-5 h-5 shrink-0" />
-                        <p>{errorDetails}</p>
+                    <div className="w-full p-4 mb-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl flex flex-col items-center gap-3 text-sm animate-fade-in-up font-medium">
+                        <div className="flex items-start gap-3 w-full">
+                            <AlertCircle className="w-5 h-5 shrink-0" />
+                            <p className="flex-1">{errorDetails}</p>
+                        </div>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={resetRecorder}
+                            className="bg-background border-destructive/30 hover:bg-destructive/10 text-destructive mt-2"
+                        >
+                            Tentar Novamente
+                        </Button>
                     </div>
                 )}
 
@@ -177,7 +214,9 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                                 <div className="absolute inset-0 rounded-full bg-teal-500/20 animate-ping" style={{ animationDuration: '2s' }} />
                             )}
                             <div className={`relative z-10 w-40 h-40 rounded-full border-4 shadow-xl flex items-center justify-center transition-all duration-500 ${isRecording ? (isPaused ? 'border-teal-500/30 bg-background scale-95 shadow-teal-500/5' : 'border-teal-500 bg-teal-500/5 scale-105 shadow-teal-500/30') : 'border-muted/50 bg-background/50 hover:border-teal-500/30 hover:bg-teal-500/5'}`}>
-                                <span className={`text-5xl font-mono tracking-tighter transition-colors duration-300 ${isRecording ? 'text-teal-500 drop-shadow-sm' : 'text-muted-foreground'} ${isPaused ? 'opacity-50' : ''}`}>
+                                <span className={`text-5xl font-mono tracking-tighter transition-colors duration-300 
+                                    ${isRecording ? (recordingTime > 540 ? 'text-red-500' : recordingTime > 480 ? 'text-orange-500' : 'text-teal-500') : 'text-muted-foreground'} 
+                                    ${isPaused ? 'opacity-50' : ''} ${isRecording && !isPaused ? 'animate-pulse-subtle' : ''}`}>
                                     {formatTime(recordingTime)}
                                 </span>
                             </div>

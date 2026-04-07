@@ -4,15 +4,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SignupForm } from '@/components/auth/signup-form'
-import { PawPrint } from 'lucide-react'
+import { PawPrint, Brain, Clock, Shield, Sparkles, Heart } from 'lucide-react'
 import Image from 'next/image'
 
 export default async function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
     const searchParams = await props.searchParams;
     return (
-        <div className="flex min-h-screen w-full bg-background">
+        <div className="flex flex-col lg:flex-row min-h-screen w-full bg-background overflow-x-hidden">
             {/* Seção Esquerda / Superior : Formulário */}
-            <div className="flex w-full lg:w-1/2 flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in slide-in-from-left-8 duration-700">
+            <div className="flex w-full lg:w-1/2 flex-col items-center justify-center p-6 sm:p-12 animate-in fade-in slide-in-from-left-8 duration-700 min-h-screen lg:min-h-0">
                 <div className="w-full max-w-[420px] space-y-8">
                     {/* Cabeçalho do Form */}
                     <div className="flex flex-col space-y-2 text-center lg:text-left">
@@ -99,43 +99,93 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
                             </div>
                         </TabsContent>
                     </Tabs>
+
+                    {/* Indicador de Rolar para Mobile */}
+                    <div className="flex lg:hidden flex-col items-center justify-center pt-8 animate-bounce text-muted-foreground/60">
+                        <span className="text-[10px] font-bold uppercase tracking-widest mb-1">Conheça o ProntuVet</span>
+                        <div className="w-px h-8 bg-gradient-to-b from-muted-foreground/40 to-transparent"></div>
+                    </div>
                 </div>
             </div>
 
-            {/* Seção Direita : Imagem Cover (Escondida em Mobile) */}
-            <div className="hidden lg:flex w-1/2 relative bg-zinc-900 overflow-hidden items-center justify-center p-12">
+            {/* Seção Direita / Inferior : Informações da Aplicação */}
+            <div className="flex flex-col w-full lg:w-1/2 relative bg-sky-950 overflow-hidden items-center justify-center p-8 sm:p-12 lg:p-20 min-h-[700px] lg:min-h-screen">
+                {/* Background com padrão sutil e gradientes */}
                 <div className="absolute inset-0 z-0">
                     <img 
-                        src="https://images.unsplash.com/photo-1596272875729-ea2713a34a44?q=80&w=2000&auto=format&fit=crop" 
-                        alt="Clínica Veterinária" 
-                        className="object-cover w-full h-full opacity-60 mix-blend-overlay"
+                        src="https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?q=80&w=2000&auto=format&fit=crop" 
+                        alt="Veterinário moderno" 
+                        className="object-cover w-full h-full opacity-40 mix-blend-overlay"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/60 to-transparent"></div>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-transparent mix-blend-multiply"></div>
+                    <div className="absolute inset-0 bg-gradient-to-br from-sky-900/90 via-sky-950/80 to-slate-950"></div>
+                    
+                    {/* Elementos decorativos de luz */}
+                    <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/20 blur-[120px]"></div>
+                    <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-sky-500/10 blur-[120px]"></div>
                 </div>
                 
-                <div className="relative z-10 max-w-lg text-white space-y-6 animate-in fade-in slide-in-from-right-8 duration-1000 delay-150">
-                    <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-medium backdrop-blur-md">
-                        <PawPrint className="mr-2 h-4 w-4" /> Inteligência Artificial Veterinária
-                    </div>
-                    <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                        Transforme o atendimento da sua clínica.
-                    </h2>
-                    <p className="text-lg text-zinc-300 font-medium leading-relaxed">
-                        Reduza o tempo em triagens e melhore seus diagnósticos consultando nosso assistente de IA treinado com milhares de casos clínicos reais.
-                    </p>
-                    
-                    {/* Mock de Testimonial ou Feature list pequena */}
-                    <div className="pt-8 border-t border-white/20 mt-8">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full border-2 border-white/20 bg-white/10 flex items-center justify-center backdrop-blur-md">
-                                <span className="font-bold text-xl">🚀</span>
-                            </div>
-                            <div>
-                                <p className="font-bold text-lg">70% mais rápido</p>
-                                <p className="text-sm text-zinc-400">na documentação de prontuários.</p>
-                            </div>
+                <div className="relative z-10 max-w-2xl w-full text-white space-y-10 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+                    <div className="space-y-4 text-center lg:text-left pt-12 lg:pt-0">
+                        <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-md shadow-inner">
+                            <Sparkles className="mr-2 h-4 w-4 text-sky-300" /> 
+                            Líder em IA para Veterinária
                         </div>
+                        <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight leading-[1.1]">
+                            Foco total na <span className="text-sky-400">saúde animal</span>,<br className="hidden sm:block" />
+                            com menos papelada.
+                        </h2>
+                        <p className="text-base sm:text-lg text-sky-100/80 font-medium leading-relaxed max-w-xl mx-auto lg:mx-0">
+                            Otimize sua rotina com o assistente inteligente que entende a linguagem clínica e acelera seus processos.
+                        </p>
+                    </div>
+                    
+                    {/* Grid de Cards Informativos */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Card 1: IA Scribe */}
+                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
+                            <div className="h-10 w-10 rounded-2xl bg-sky-500/20 flex items-center justify-center mb-4 border border-sky-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
+                                <Brain className="h-5 w-5 text-sky-300" />
+                            </div>
+                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">IA Scribe</h3>
+                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Transcreve e resume suas consultas em segundos.</p>
+                        </div>
+
+                        {/* Card 2: Performance */}
+                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
+                            <div className="h-10 w-10 rounded-2xl bg-green-500/20 flex items-center justify-center mb-4 border border-green-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
+                                <Clock className="h-5 w-5 text-green-300" />
+                            </div>
+                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">70% Mais Rápido</h3>
+                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Reduza drasticamente o tempo de documentação.</p>
+                        </div>
+
+                        {/* Card 3: Segurança */}
+                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
+                            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-4 border border-amber-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
+                                <Shield className="h-5 w-5 text-amber-300" />
+                            </div>
+                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">Criptografado</h3>
+                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Todos os dados dos seus pacientes estão protegidos.</p>
+                        </div>
+
+                        {/* Card 4: Cuidado */}
+                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
+                            <div className="h-10 w-10 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-4 border border-rose-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
+                                <Heart className="h-5 w-5 text-rose-300" />
+                            </div>
+                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">Humanizado</h3>
+                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Liberdade para focar mais no que realmente importa.</p>
+                        </div>
+                    </div>
+
+                    {/* Footer Social Proof sutil */}
+                    <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center gap-4 opacity-70">
+                        <div className="flex -space-x-2">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-8 w-8 rounded-full border-2 border-sky-900 bg-sky-800" />
+                            ))}
+                        </div>
+                        <p className="text-xs font-medium italic text-center sm:text-left">Confiança de centenas de veterinários em todo o Brasil.</p>
                     </div>
                 </div>
             </div>

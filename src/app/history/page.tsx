@@ -18,18 +18,16 @@ export default async function HistoryPage() {
             tags,
             tutor_name,
             structured_content,
-            animals ( name, species )
+            animal_id,
+            resumo_trilha,
+            animals ( id, name, species )
         `)
         .order('created_at', { ascending: false })
         .limit(30)
 
     return (
         <div className="flex-1 w-full max-w-5xl mx-auto space-y-8 animate-fade-in-up pt-8 px-4 pb-16">
-            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-10">
-                <Link href="/dashboard" className="inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-muted/50 hover:text-foreground h-10 px-4 py-2 text-muted-foreground self-start mt-1">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Voltar
-                </Link>
+            <div className="flex flex-col items-start gap-4 mb-10">
                 <div className="flex-1">
                     <h1 className="text-4xl font-bold tracking-tight text-foreground flex items-center gap-3">
                         <Clock className="w-8 h-8 text-teal-500" />

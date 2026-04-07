@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dog, FileText, Calendar, Search, Tag as TagIcon, LayoutList, PawPrint } from 'lucide-react'
+import { Dog, Cat, Bird, Fish, Rabbit, FileText, Calendar, Search, Tag as TagIcon, LayoutList, PawPrint, History as HistoryIcon, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 interface Consultation {
     id: string
@@ -16,40 +17,83 @@ interface Consultation {
     tags?: string[]
     tutor_name?: string
     structured_content?: any
-    animals?: { name: string; species: string }
+    animal_id?: string
+    resumo_trilha?: string
+    animals?: { id: string; name: string; species: string }
 }
 
 export function HistoryList({ initialData }: { initialData: Consultation[] }) {
     const [searchQuery, setSearchQuery] = useState('')
     const [viewMode, setViewMode] = useState<'list' | 'animal'>('list')
     const [selectedTag, setSelectedTag] = useState<string | null>(null)
+    const [aiResults, setAiResults] = useState<Consultation[] | null>(null)
+    const [isAISearching, setIsAISearching] = useState(false)
+    const [isAIActive, setIsAIActive] = useState(false)
+    const [visibleCount, setVisibleCount] = useState(12)
 
-    // Extract all unique tags for the filter pill list
-    const allTags = useMemo(() => {
-        const tags = new Set<string>()
-        initialData.forEach(c => {
-            if (c.tags && Array.isArray(c.tags)) {
-                c.tags.forEach(t => tags.add(t))
-            }
-        })
-        return Array.from(tags)
-    }, [initialData])
 
-    // Filter consultations based on search and selected tag
+    // Filter consultations based on search
     const filteredData = useMemo(() => {
-        return initialData.filter(c => {
+        // If AI search is active and has results, use those as the base
+        const baseData = (isAIActive && aiResults) ? aiResults : initialData;
+
+        return baseData.filter(c => {
+            const animalName = Array.isArray(c.animals) ? c.animals[0]?.name : c.animals?.name;
+            
             const matchesSearch = searchQuery === '' ||
                 c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 c.tutor_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                c.animals?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (c.tags && c.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()))) ||
+                animalName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (c.structured_content && JSON.stringify(c.structured_content).toLowerCase().includes(searchQuery.toLowerCase()));
 
-            const matchesTag = selectedTag === null || (c.tags && c.tags.includes(selectedTag));
-
-            return matchesSearch && matchesTag;
+            return matchesSearch;
         })
-    }, [initialData, searchQuery, selectedTag])
+    }, [initialData, aiResults, isAIActive, searchQuery])
+
+    const handleAISearch = async () => {
+        if (!searchQuery.trim() || searchQuery.length < 3) {
+            toast.error('Digite uma busca mais detalhada para a IA.')
+            return
+        }
+
+        setIsAISearching(true)
+        setIsAIActive(true)
+        try {
+            const res = await fetch(`/api/history/search?q=${encodeURIComponent(searchQuery)}`)
+            if (!res.ok) throw new Error()
+            const { results } = await res.json()
+            setAiResults(results)
+            toast.success('Busca inteligente concluída!')
+        } catch (err) {
+            toast.error('Erro ao realizar busca inteligente.')
+            setIsAIActive(false)
+        } finally {
+            setIsAISearching(false)
+        }
+    }
+
+    const clearSearch = () => {
+        setSearchQuery('')
+        setSelectedTag(null)
+        setIsAIActive(false)
+        setAiResults(null)
+    }
+
+    const getAnimalIcon = (species?: string) => {
+        if (!species) return <Dog className="w-6 h-6" />;
+        const lowSpecies = species.toLowerCase();
+        if (lowSpecies.includes('gato') || lowSpecies.includes('felin')) return <Cat className="w-6 h-6" />;
+        if (lowSpecies.includes('pássaro') || lowSpecies.includes('ave') || lowSpecies.includes('passaro')) return <Bird className="w-6 h-6" />;
+        if (lowSpecies.includes('peixe')) return <Fish className="w-6 h-6" />;
+        if (lowSpecies.includes('coelho')) return <Rabbit className="w-6 h-6" />;
+        if (lowSpecies.includes('cachorro') || lowSpecies.includes('cão') || lowSpecies.includes('canin')) return <Dog className="w-6 h-6" />;
+        return <PawPrint className="w-6 h-6" />;
+    };
+
+    const getAnimalIconLarge = (species?: string) => {
+        const icon = getAnimalIcon(species);
+        return icon;
+    };
 
     // Group by animal if in animal view mode
     const groupedData = useMemo(() => {
@@ -59,11 +103,10 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
         const unassigned: Consultation[] = [];
 
         filteredData.forEach(c => {
-            // Check if it's connected to an animal
-            if (c.animals?.name) {
-                const name = c.animals.name;
-                if (!groups[name]) groups[name] = [];
-                groups[name].push(c);
+            const animalName = c.animals?.name;
+            if (animalName) {
+                if (!groups[animalName]) groups[animalName] = [];
+                groups[animalName].push(c);
             } else {
                 unassigned.push(c);
             }
@@ -83,7 +126,7 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                 <CardHeader className="pb-3 pt-6 px-6">
                     <div className="flex justify-between items-start mb-4">
                         <div className="p-3 rounded-xl bg-gradient-to-br from-teal-500/10 to-blue-500/10 text-teal-500 group-hover:from-teal-500/20 group-hover:to-blue-500/20 group-hover:scale-110 transition-all duration-300">
-                            <Dog className="w-6 h-6" />
+                            {getAnimalIcon(consultation.animals?.species)}
                         </div>
                     </div>
                     <CardTitle className="text-xl font-bold line-clamp-2 leading-tight group-hover:text-teal-600 transition-colors">
@@ -102,19 +145,10 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                             day: '2-digit', month: 'short', year: 'numeric'
                         })}
                     </div>
-                    {consultation.tags && consultation.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 pt-1">
-                            {consultation.tags.slice(0, 3).map(tag => (
-                                <span key={tag} className="inline-flex items-center text-[10px] uppercase font-bold tracking-wider bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full">
-                                    {tag}
-                                </span>
-                            ))}
-                            {consultation.tags.length > 3 && (
-                                <span className="inline-flex items-center text-[10px] uppercase font-bold tracking-wider bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                                    +{consultation.tags.length - 3}
-                                </span>
-                            )}
-                        </div>
+                    {consultation.resumo_trilha && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 italic leading-relaxed pt-1 border-t border-border/20">
+                            "{consultation.resumo_trilha}"
+                        </p>
                     )}
                 </CardContent>
                 <CardFooter className="pt-4 pb-6 px-6 mt-auto border-t border-border/30">
@@ -135,15 +169,43 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                         <Input
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Buscar por animal, tutor, tag ou conteúdo..."
-                            className="pl-10 h-12 bg-background/80 rounded-full border-border/60 focus-visible:ring-teal-500 shadow-sm"
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                if (e.target.value === '') setIsAIActive(false)
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
+                            placeholder={isAIActive ? "Busca IA ativa..." : "Buscar por animal, tutor, tag..."}
+                            className={`pl-10 pr-24 h-12 bg-background/80 rounded-full border-border/60 focus-visible:ring-teal-500 shadow-sm transition-all ${isAIActive ? 'border-teal-500/50 bg-teal-500/5 ring-1 ring-teal-500/30' : ''}`}
                         />
+                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            {isAIActive && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={clearSearch}
+                                    className="h-9 px-3 rounded-full text-muted-foreground hover:text-foreground"
+                                >
+                                    Limpar
+                                </Button>
+                            )}
+                            <Button 
+                                size="sm" 
+                                onClick={handleAISearch}
+                                disabled={isAISearching || !searchQuery}
+                                className="h-9 px-4 rounded-full bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 transition-all hover:scale-105"
+                            >
+                                {isAISearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>✨ Buscar IA</span>}
+                            </Button>
+                        </div>
                     </div>
 
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'list' | 'animal')} className="w-full sm:w-auto">
                         <TabsList className="grid w-full grid-cols-2 h-12 rounded-full p-1 bg-muted/60">
-                            <TabsTrigger value="list" className="rounded-full flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
+                            <TabsTrigger 
+                                value="list" 
+                                onClick={() => setVisibleCount(12)}
+                                className="rounded-full flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-teal-600 data-[state=active]:shadow-sm"
+                            >
                                 <LayoutList className="w-4 h-4" /> Lista
                             </TabsTrigger>
                             <TabsTrigger value="animal" className="rounded-full flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-teal-600 data-[state=active]:shadow-sm">
@@ -153,30 +215,6 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                     </Tabs>
                 </div>
 
-                {allTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <TagIcon className="w-4 h-4 text-muted-foreground mr-1" />
-                        <Button
-                            variant={selectedTag === null ? "default" : "outline"}
-                            size="sm"
-                            className={`rounded-full h-8 text-xs ${selectedTag === null ? 'bg-teal-500 hover:bg-teal-600' : ''}`}
-                            onClick={() => setSelectedTag(null)}
-                        >
-                            Todas
-                        </Button>
-                        {allTags.map(tag => (
-                            <Button
-                                key={tag}
-                                variant={selectedTag === tag ? "default" : "outline"}
-                                size="sm"
-                                className={`rounded-full h-8 text-xs ${selectedTag === tag ? 'bg-blue-500 hover:bg-blue-600 border-none' : 'hover:border-blue-500/50 hover:text-blue-600'}`}
-                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                            >
-                                {tag}
-                            </Button>
-                        ))}
-                    </div>
-                )}
             </div>
 
             {/* Results */}
@@ -193,15 +231,30 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                         <Button
                             variant="link"
                             className="mt-4 text-teal-600"
-                            onClick={() => { setSearchQuery(''); setSelectedTag(null); }}
+                            onClick={clearSearch}
                         >
                             Limpar filtros
                         </Button>
                     )}
                 </div>
             ) : viewMode === 'list' ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredData.map((consultation, index) => renderCard(consultation, index))}
+                <div className="space-y-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredData.slice(0, visibleCount).map((consultation, index) => renderCard(consultation, index))}
+                    </div>
+                    
+                    {filteredData.length > visibleCount && (
+                        <div className="flex justify-center pt-8">
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setVisibleCount(prev => prev + 12)}
+                                className="rounded-full px-10 h-12 border-teal-500/30 text-teal-600 hover:bg-teal-500/10 hover:border-teal-500 transition-all font-bold shadow-sm flex items-center gap-2 group"
+                            >
+                                <HistoryIcon className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                                Carregar Mais Consultas
+                            </Button>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="space-y-12">
@@ -210,14 +263,24 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                         <div className="space-y-10">
                             {Object.entries(groupedData.groups).sort().map(([animalName, cons], groupIndex) => (
                                 <div key={animalName} className="space-y-4">
-                                    <div className="flex items-center gap-3 pb-2 border-b border-border/40">
-                                        <div className="p-2 bg-teal-500/10 rounded-lg text-teal-600">
-                                            <PawPrint className="w-5 h-5" />
+                                    <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-teal-500/10 rounded-lg text-teal-600">
+                                                {getAnimalIconLarge(cons[0]?.animals?.species)}
+                                            </div>
+                                            <h2 className="text-2xl font-bold text-foreground capitalize">{animalName}</h2>
+                                            <span className="bg-muted px-2.5 py-0.5 rounded-full text-xs font-semibold text-muted-foreground ml-2">
+                                                {cons.length} {cons.length === 1 ? 'consulta' : 'consultas'}
+                                            </span>
                                         </div>
-                                        <h2 className="text-2xl font-bold text-foreground capitalize">{animalName}</h2>
-                                        <span className="bg-muted px-2.5 py-0.5 rounded-full text-xs font-semibold text-muted-foreground ml-2">
-                                            {cons.length} {cons.length === 1 ? 'consulta' : 'consultas'}
-                                        </span>
+                                        {cons[0]?.animals?.id && (
+                                            <Link href={`/history/animal/${cons[0].animals.id}/timeline`}>
+                                                <Button variant="outline" size="sm" className="rounded-full border-teal-500/30 text-teal-600 hover:bg-teal-500/10 hover:border-teal-500 transition-all gap-2 h-9">
+                                                    <HistoryIcon className="w-4 h-4" />
+                                                    Ver Trilha Clínica
+                                                </Button>
+                                            </Link>
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {cons.map((consultation, index) => renderCard(consultation, groupIndex * 10 + index))}
@@ -229,9 +292,20 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
 
                     {/* Unassigned / No animal name */}
                     {groupedData && groupedData.unassigned.length > 0 && (
-                        <div className="space-y-4 pt-4">
-                            <div className="flex items-center gap-3 pb-2 border-b border-border/40">
-                                <h2 className="text-2xl font-bold text-foreground/70">Pacientes Não Especificados</h2>
+                        <div className="space-y-4 pt-10">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/40">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-muted rounded-lg text-muted-foreground">
+                                        <PawPrint className="w-5 h-5" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-foreground/70">Pacientes Não Especificados</h2>
+                                </div>
+                                <Link href={`/history/patient/${encodeURIComponent('Desconhecido')}/timeline`}>
+                                    <Button variant="outline" size="sm" className="rounded-full border-teal-500/30 text-teal-600 hover:bg-teal-500/10 hover:border-teal-500 transition-all gap-2 h-9">
+                                        <HistoryIcon className="w-4 h-4" />
+                                        Ver Trilha Clínica
+                                    </Button>
+                                </Link>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-90">
                                 {groupedData.unassigned.map((consultation, index) => renderCard(consultation, index))}

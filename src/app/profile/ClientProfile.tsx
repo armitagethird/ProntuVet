@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, LogOut, Mail, Shield, Plus, Key, Camera, PawPrint, Trash2 } from 'lucide-react'
+import { User, LogOut, Mail, Shield, Plus, Key, Camera, PawPrint, Trash2, BarChart3, Clock, Zap, Dog, ArrowRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import Image from 'next/image'
+import { Progress } from '@/components/ui/progress'
+import Link from 'next/link'
 
 export default function ClientProfile({ initialUser, onLogout }: { initialUser: any, onLogout: () => void }) {
     const supabase = createClient()
@@ -15,6 +17,52 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
     const [pets, setPets] = useState<{name: string, kind: string}[]>(initialUser.user_metadata?.my_pets || [])
     const [newPetName, setNewPetName] = useState('')
     const [newPetKind, setNewPetKind] = useState('')
+    const [usage, setUsage] = useState({ daily: 0, monthly: 0, loading: true })
+
+    useEffect(() => {
+        const fetchUsage = async () => {
+            try {
+                const today = new Date()
+                today.setUTCHours(0, 0, 0, 0)
+                
+                const firstDayOfMonth = new Date()
+                firstDayOfMonth.setUTCHours(0, 0, 0, 0)
+                firstDayOfMonth.setUTCDate(1)
+
+                // Fetch Daily
+                const { count: dailyCount } = await supabase
+                    .from('consultations')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', initialUser.id)
+                    .gte('created_at', today.toISOString())
+
+                // Fetch Monthly
+                const { count: monthlyCount } = await supabase
+                    .from('consultations')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', initialUser.id)
+                    .gte('created_at', firstDayOfMonth.toISOString())
+
+                setUsage({
+                    daily: dailyCount || 0,
+                    monthly: monthlyCount || 0,
+                    loading: false
+                })
+            } catch (error) {
+                console.error("Error fetching usage:", error)
+                setUsage(prev => ({ ...prev, loading: false }))
+            }
+        }
+
+        fetchUsage()
+    }, [initialUser.id, supabase])
+
+    const formatCPF = (cpf: string) => {
+        if (!cpf) return 'Não informado'
+        const digits = cpf.replace(/\D/g, '')
+        if (digits.length !== 11) return cpf
+        return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+    }
 
     const handlePasswordReset = async () => {
         try {
@@ -129,6 +177,20 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                             <p className="text-xs text-muted-foreground px-1">Seu nome não pode ser alterado por aqui.</p>
                         </div>
                         <div className="space-y-2">
+                            <Label>CPF</Label>
+                            <div className="relative group/cpf">
+                                <Input 
+                                    disabled 
+                                    value={formatCPF(userMeta.cpf)} 
+                                    className="bg-muted/50 text-muted-foreground opacity-80 font-mono tracking-wider" 
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover/cpf:opacity-100 transition-opacity">
+                                    <Shield className="w-4 h-4 text-teal-500/50" />
+                                </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground px-1">O CPF é usado para validação da conta e anti-fraude.</p>
+                        </div>
+                        <div className="space-y-2">
                             <Label>E-mail</Label>
                             <Input disabled value={initialUser.email || ''} className="bg-muted/50 text-muted-foreground opacity-80" />
                             <p className="text-xs text-muted-foreground px-1">O E-mail associado à conta não pode ser mudado.</p>
@@ -149,6 +211,7 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                         </Button>
                     </div>
                 </div>
+
 
                 {/* MY PETS (FUN) */}
                 <div className="md:col-span-2 space-y-6 bg-card/40 border border-border/40 rounded-3xl p-6 backdrop-blur-md">
@@ -195,6 +258,51 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                                 Você ainda não tem nenhum pet registrado!
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* USAGE DASHBOARD */}
+                <div className="md:col-span-2 space-y-6 bg-card/60 border-2 border-teal-500/10 rounded-3xl p-8 backdrop-blur-xl shadow-xl bg-gradient-to-br from-teal-500/5 to-transparent">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                            <BarChart3 className="w-6 h-6 text-teal-500" /> Uso do Plano de IA
+                        </h2>
+                        <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-slate-200 via-white to-slate-200 text-slate-700 rounded-full text-sm font-black border border-slate-300/50 shadow-sm shadow-slate-400/10 uppercase tracking-widest">
+                            <Zap className="w-4 h-4 fill-current text-slate-400" /> Plano Platinum
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                        <div className="space-y-4 p-6 bg-background/40 border border-border/40 rounded-2xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-5 h-5 text-purple-500" />
+                                    <span className="font-semibold">Limite Diário</span>
+                                </div>
+                                <span className="text-sm font-bold">{usage.daily} / 20</span>
+                            </div>
+                            <Progress value={(usage.daily / 20) * 100} className="h-3 bg-muted/50" color="purple" />
+                            <p className="text-xs text-muted-foreground">O limite diário é resetado à meia-noite (UTC) para proteção da conta.</p>
+                        </div>
+
+                        <div className="space-y-4 p-6 bg-background/40 border border-border/40 rounded-2xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Zap className="w-5 h-5 text-teal-500" />
+                                    <span className="font-semibold">Limite Mensal</span>
+                                </div>
+                                <span className="text-sm font-bold">{usage.monthly} / 200</span>
+                            </div>
+                            <Progress value={(usage.monthly / 200) * 100} className="h-3 bg-muted/50" />
+                            <p className="text-xs text-muted-foreground">Gravações limitadas a 10 minutos por consulta no plano Platinum.</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-teal-500/5 border border-teal-500/20 rounded-2xl flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></div>
+                        <p className="text-sm text-foreground/80">
+                            <strong>Dica Profissional:</strong> Você economizou aproximadamente <strong>{Math.round(usage.monthly * 12)} minutos</strong> de digitação este mês com o ProntuVet.
+                        </p>
                     </div>
                 </div>
 

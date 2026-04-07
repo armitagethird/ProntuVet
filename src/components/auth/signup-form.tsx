@@ -9,6 +9,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 export function SignupForm() {
     const [specialization, setSpecialization] = useState<string>('')
+    const [cpf, setCpf] = useState('')
+
+    const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let value = e.target.value.replace(/\D/g, '')
+        if (value.length > 11) value = value.slice(0, 11)
+        
+        // Apply mask: 000.000.000-00
+        if (value.length > 9) {
+            value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4')
+        } else if (value.length > 6) {
+            value = value.replace(/(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3')
+        } else if (value.length > 3) {
+            value = value.replace(/(\d{3})(\d{0,3})/, '$1.$2')
+        }
+        
+        setCpf(value)
+    }
 
     return (
         <form action={signup}>
@@ -47,6 +64,21 @@ export function SignupForm() {
                         required
                         className="bg-background/50 focus-visible:ring-teal-500"
                     />
+                </div>
+
+                <div className="grid gap-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                        id="cpf"
+                        name="cpf"
+                        type="text"
+                        placeholder="000.000.000-00"
+                        value={cpf}
+                        onChange={handleCpfChange}
+                        required
+                        className="bg-background/50 focus-visible:ring-teal-500 font-mono tracking-wider"
+                    />
+                    <p className="text-[10px] text-muted-foreground px-1 uppercase tracking-tighter">O CPF deve ser único por conta</p>
                 </div>
 
                 <div className="grid gap-2">

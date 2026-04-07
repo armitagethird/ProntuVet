@@ -45,3 +45,7 @@ next-env.d.ts
 # Obsidian vault config (gerado automaticamente pelo Obsidian)
 _memoria/.obsidian/workspace.json
 _memoria/.obsidian/workspace-mobile.json
+
+# Local temporary files
+ts_errors.txt
+build_error.txt

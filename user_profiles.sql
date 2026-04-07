@@ -5,6 +5,7 @@ CREATE TABLE public.profiles (
   last_name TEXT,
   birth_date DATE,
   specialization TEXT,
+  cpf TEXT UNIQUE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::TEXT, NOW()) NOT NULL
 );
 
@@ -25,13 +26,14 @@ CREATE POLICY "Usuários podem atualizar seu próprio perfil." ON public.profile
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, first_name, last_name, birth_date, specialization)
+  INSERT INTO public.profiles (id, first_name, last_name, birth_date, specialization, cpf)
   VALUES (
     NEW.id,
     NEW.raw_user_meta_data->>'first_name',
     NEW.raw_user_meta_data->>'last_name',
     (NEW.raw_user_meta_data->>'birth_date')::DATE,
-    NEW.raw_user_meta_data->>'specialization'
+    NEW.raw_user_meta_data->>'specialization',
+    NEW.raw_user_meta_data->>'cpf'
   );
   RETURN NEW;
 END;

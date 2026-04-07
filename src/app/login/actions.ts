@@ -34,6 +34,8 @@ export async function signup(formData: FormData) {
     const lastName = formData.get('last_name') as string
     const birthDate = formData.get('birth_date') as string
     const specialization = formData.get('specialization_other') || formData.get('specialization') as string
+    const rawCpf = formData.get('cpf') as string
+    const cpf = rawCpf.replace(/\D/g, '') // Normalize: keep only digits
 
     const { error } = await supabase.auth.signUp({
         email,
@@ -44,6 +46,7 @@ export async function signup(formData: FormData) {
                 last_name: lastName,
                 birth_date: birthDate,
                 specialization: specialization,
+                cpf: cpf,
             }
         }
     })
