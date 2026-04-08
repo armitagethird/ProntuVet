@@ -92,7 +92,8 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
             }
 
             const fileExt = file.name.split('.').pop()
-            const filePath = `${initialUser.id}-${Math.random()}.${fileExt}`
+            const fileName = `${Math.random()}.${fileExt}`
+            const filePath = `${initialUser.id}/${fileName}`
 
             toast.loading('Fazendo upload...', { id: 'upload' })
             
