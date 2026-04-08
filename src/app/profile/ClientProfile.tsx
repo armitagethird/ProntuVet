@@ -80,6 +80,17 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
         try {
             if (!e.target.files || e.target.files.length === 0) return
             const file = e.target.files[0]
+            
+            // Validação de segurança: Tamanho e Tipo
+            if (!file.type.startsWith('image/')) {
+                return toast.error('Por favor, selecione um arquivo de imagem válido.')
+            }
+
+            const maxSize = 5 * 1024 * 1024 // 5MB
+            if (file.size > maxSize) {
+                return toast.error('A foto de perfil deve ter no máximo 5MB.')
+            }
+
             const fileExt = file.name.split('.').pop()
             const filePath = `${initialUser.id}-${Math.random()}.${fileExt}`
 
