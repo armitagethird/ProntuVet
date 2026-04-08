@@ -12,6 +12,10 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "ProntuVet",
   description: "Assistente veterinário de alto nível impulsionado por IA.",
+  icons: {
+    icon: "/prontuvet-icon.png",
+    apple: "/prontuvet-icon.png",
+  },
 };
 
 export default function RootLayout({
