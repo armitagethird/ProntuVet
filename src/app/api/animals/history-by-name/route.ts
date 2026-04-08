@@ -18,14 +18,16 @@ export async function GET(request: NextRequest) {
         }
 
         // 1. Find all animal IDs with this name (case-insensitive) for this user
+        const sanitizedName = name.trim().replace(/[%_]/g, '\\$&')
+        
         const { data: relatedAnimals } = await supabase
             .from('animals')
             .select('id')
-            .ilike('name', name.trim())
+            .ilike('name', sanitizedName)
             .eq('user_id', user.id)
 
         const animalIds = relatedAnimals?.map(a => a.id) || []
-        const namePattern = `%${name.trim()}%`
+        const namePattern = `%${sanitizedName}%`
 
         // 2. Fetch all consultations: Broad search across IDs, Title and Structured Content
         // We look for:
@@ -57,8 +59,9 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({ success: true, history })
 
-    } catch (error: any) {
-        console.error("History By Name API error:", error)
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error("History By Name API error:", message)
         return NextResponse.json({ error: 'Erro ao carregar o histórico' }, { status: 500 })
     }
 }

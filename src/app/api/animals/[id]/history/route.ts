@@ -33,13 +33,15 @@ export async function GET(
             .single()
 
         const name = targetAnimal?.name || '';
-        const namePattern = `%${name.trim()}%`
+        // Sanitiza para prevenir wildcards indesejados no LIKE
+        const sanitizedName = name.trim().replace(/[%_]/g, '\\$&')
+        const namePattern = `%${sanitizedName}%`
 
         // 2. Find all consultations for ANIMALS with that same name (case-insensitive)
         const { data: relatedAnimals } = await supabase
             .from('animals')
             .select('id')
-            .ilike('name', name.trim())
+            .ilike('name', sanitizedName)
             .eq('user_id', user.id)
 
         const animalIds = relatedAnimals?.map(a => a.id) || [params.id]
@@ -52,7 +54,7 @@ export async function GET(
 
         const orConditions = [`animal_id.in.(${animalIds.join(',')})`]
         
-        if (name && name.length >= 2) {
+        if (sanitizedName && sanitizedName.length >= 2) {
              orConditions.push(`title.ilike.${namePattern}`)
         }
         
@@ -65,8 +67,9 @@ export async function GET(
 
         return NextResponse.json({ success: true, history })
 
-    } catch (error: any) {
-        console.error("Animal History API error:", error)
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error("Animal History API error:", message)
         return NextResponse.json({ error: 'Erro ao carregar o histórico' }, { status: 500 })
     }
 }
