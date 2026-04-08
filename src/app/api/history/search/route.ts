@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeHistoryQuery } from '@/lib/gemini'
 
+/** Escapa caracteres especiais do operador LIKE para evitar comportamento inesperado */
+function sanitizeLike(value: string): string {
+    return value.replace(/[%_\\]/g, '\\$&')
+}
+
 export async function GET(req: NextRequest) {
     try {
         const supabase = await createClient()
@@ -46,10 +51,8 @@ export async function GET(req: NextRequest) {
 
         // Apply filters
         if (filters.animal && filters.animal !== '...') {
-            // We can't easily join filter in a single ilike on the related table in simple select
-            // So we'll use the contains or we'll filter animals first if needed, 
-            // but for simplicity in MVP we'll use a broad search on title or metadata if matched.
-            dbQuery = dbQuery.or(`title.ilike.%${filters.animal}%,tutor_name.ilike.%${filters.animal}%`)
+            const safeAnimal = sanitizeLike(filters.animal)
+            dbQuery = dbQuery.or(`title.ilike.%${safeAnimal}%,tutor_name.ilike.%${safeAnimal}%`)
         }
 
         if (filters.startDate) {
@@ -60,9 +63,8 @@ export async function GET(req: NextRequest) {
         }
         
         if (filters.keywords && filters.keywords !== '...') {
-            // Search in structured_content (JSONB) or transcription
-            // For now, let's search in transcription for medical terms
-            dbQuery = dbQuery.ilike('transcription', `%${filters.keywords}%`)
+            const safeKeywords = sanitizeLike(filters.keywords)
+            dbQuery = dbQuery.ilike('transcription', `%${safeKeywords}%`)
         }
 
         const { data, error } = await dbQuery
@@ -71,13 +73,20 @@ export async function GET(req: NextRequest) {
 
         if (error) throw error
 
-        // 3. Optional: Filter by animal name in memory if the relation join didn't work for filtering
+        // 3. Filtra por nome do animal em memória (fallback ao join relacional)
         let results = data;
         if (filters.animal && filters.animal !== '...') {
-            results = data.filter(c => 
-                c.animals?.name?.toLowerCase().includes(filters.animal.toLowerCase()) ||
-                c.title?.toLowerCase().includes(filters.animal.toLowerCase())
-            )
+            const animalFilter = filters.animal.toLowerCase()
+            results = data.filter(c => {
+                // Supabase pode retornar como array ou objeto dependendo da relação
+                const animalName = Array.isArray(c.animals)
+                    ? (c.animals as Array<{ name: string }>)[0]?.name
+                    : (c.animals as { name: string } | null)?.name
+                return (
+                    animalName?.toLowerCase().includes(animalFilter) ||
+                    c.title?.toLowerCase().includes(animalFilter)
+                )
+            })
         }
 
         return NextResponse.json({ 
@@ -85,7 +94,7 @@ export async function GET(req: NextRequest) {
             filters_used: filters 
         })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Search API Error:', error)
         return NextResponse.json({ error: 'Erro ao processar busca inteligente' }, { status: 500 })
     }

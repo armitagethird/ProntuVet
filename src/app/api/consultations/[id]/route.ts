@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { findOrCreateAnimal } from '@/lib/supabase/animals'
 import { z } from 'zod'
 
 const consultationIdSchema = z.object({
@@ -35,7 +36,7 @@ export async function GET(
         }
 
         return NextResponse.json({ success: true, data })
-    } catch (error: any) {
+    } catch (error: unknown) {
         return NextResponse.json({ error: 'Erro ao carregar os dados da consulta' }, { status: 500 })
     }
 }
@@ -87,7 +88,15 @@ export async function PATCH(
             .eq('id', params.id)
             .single();
 
-        const updateData: any = {}
+        const updateData: Partial<{
+            structured_content: Record<string, string>
+            tutor_summary: string
+            vet_summary: string
+            manual_notes: string
+            tutor_name: string
+            title: string
+            animal_id: string | null
+        }> = {}
         if (structured_content !== undefined) updateData.structured_content = structured_content;
         if (tutor_summary !== undefined) updateData.tutor_summary = tutor_summary;
         if (vet_summary !== undefined) updateData.vet_summary = vet_summary;
@@ -98,55 +107,37 @@ export async function PATCH(
         // Handle case where user edits the animal name/species
         if (animal_name !== undefined || animal_species !== undefined) {
 
-            // If they cleared the name entirely, unlink the animal
+            // Se o nome foi apagado, desvincula o animal
             if (animal_name === '') {
                 updateData.animal_id = null;
             } else if (animal_name) {
-                
-                // FIXED LOGIC: If there's already an animal_id, update THAT record to avoid duplicates
+
+                // Se já existe um animal vinculado, atualiza ESSE registro (evita duplicações)
                 if (currentConsultation?.animal_id) {
-                    const updateAnimalObj: any = { name: animal_name };
+                    const updateAnimalObj: { name: string; species?: string } = { name: animal_name };
                     if (animal_species !== undefined) updateAnimalObj.species = animal_species;
-                    
+
+                    // FIX #4: Garante ownership com .eq('user_id', user.id)
                     await supabase
                         .from('animals')
                         .update(updateAnimalObj)
-                        .eq('id', currentConsultation.animal_id);
-                    
+                        .eq('id', currentConsultation.animal_id)
+                        .eq('user_id', user.id);
+
                     updateData.animal_id = currentConsultation.animal_id;
                 } else {
-                    // Try to find an animal with this name first for the user
-                    const { data: existingAnimals } = await supabase
-                        .from('animals')
-                        .select('id, name')
-                        .eq('user_id', user.id)
-                        .ilike('name', animal_name)
-                        .limit(1);
+                    // Sem animal vinculado: busca ou cria via utiliário compartilhado
+                    const animalId = await findOrCreateAnimal(supabase, user.id, animal_name, animal_species)
+                    if (animalId) {
+                        updateData.animal_id = animalId
 
-                    if (existingAnimals && existingAnimals.length > 0) {
-                        updateData.animal_id = existingAnimals[0].id;
-
-                        // Update species if changed
-                        if (animal_species !== undefined && animal_species !== '') {
+                        // Atualiza espécie se informada e diferente
+                        if (animal_species) {
                             await supabase
                                 .from('animals')
                                 .update({ species: animal_species })
-                                .eq('id', existingAnimals[0].id);
-                        }
-                    } else {
-                        // Create new animal
-                        const { data: newAnimal } = await supabase
-                            .from('animals')
-                            .insert({
-                                user_id: user.id,
-                                name: animal_name,
-                                species: animal_species || null,
-                            })
-                            .select('id')
-                            .single()
-
-                        if (newAnimal) {
-                            updateData.animal_id = newAnimal.id;
+                                .eq('id', animalId)
+                                .eq('user_id', user.id);
                         }
                     }
                 }
@@ -168,7 +159,7 @@ export async function PATCH(
 
         return NextResponse.json({ success: true, data })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("API error:", error)
         return NextResponse.json({ error: 'Erro ao atualizar a consulta' }, { status: 500 })
     }
@@ -226,7 +217,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Delete API error:", error)
         return NextResponse.json({ error: 'Erro ao excluir o prontuário' }, { status: 500 })
     }

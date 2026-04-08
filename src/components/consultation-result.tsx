@@ -72,6 +72,31 @@ interface ConsultationData {
     animals?: { name: string, species?: string }
 }
 
+/** Entrada do histórico clínico de um animal — alinha com TimelineEvent */
+interface HistoryEntry {
+    id: string
+    title: string
+    date: string
+    resumo_trilha: string | null
+    tags?: string[]
+}
+
+/** Animal candidato a duplicata ou correspondência */
+interface AnimalMatch {
+    id: string
+    name: string
+    species?: string
+    last_tutor_name?: string
+}
+
+/** Componentes do PDF carregados dinamicamente */
+interface PDFLib {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Link: React.ComponentType<any>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Report: React.ComponentType<any>
+}
+
 export function ConsultationResult({ data }: { data: ConsultationData }) {
     const router = useRouter()
     const [isEditing, setIsEditing] = useState(false)
@@ -91,17 +116,17 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [tutorName, setTutorName] = useState(data.tutor_name || '')
 
     // History and Matching States
-    const [history, setHistory] = useState<any[]>([])
+    const [history, setHistory] = useState<HistoryEntry[]>([])
     const [isLoadingHistory, setIsLoadingHistory] = useState(false)
-    const [matchingAnimal, setMatchingAnimal] = useState<any | null>(null)
+    const [matchingAnimal, setMatchingAnimal] = useState<AnimalMatch | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [userId, setUserId] = useState<string | null>(null)
     const [refreshAttachments, setRefreshAttachments] = useState(0)
     const [isMounted, setIsMounted] = useState(false)
-    const [PDFComponents, setPDFComponents] = useState<any>(null)
+    const [PDFComponents, setPDFComponents] = useState<PDFLib | null>(null)
     const [isDuplicateNameDetected, setIsDuplicateNameDetected] = useState(false)
-    const [duplicateCandidate, setDuplicateCandidate] = useState<any | null>(null)
+    const [duplicateCandidate, setDuplicateCandidate] = useState<AnimalMatch | null>(null)
     const [activeTab, setActiveTab] = useState('prontuario')
     const [isNavOpen, setIsNavOpen] = useState(false)
     const searchTimeoutRef = useRef<NodeJS.Timeout>(null)
@@ -177,17 +202,18 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
 
     const resolveAsNewPet = async () => {
         if (!duplicateCandidate) return
-        // Auto-suffix logic: find the next available number
+        // Captura o nome atual antes do await para evitar stale closure no toast
+        const currentName = animalName
         try {
-            const res = await fetch(`/api/animals/search?name=${encodeURIComponent(animalName)}`)
+            const res = await fetch(`/api/animals/search?name=${encodeURIComponent(currentName)}`)
             const { animals } = await res.json()
             const count = animals?.length || 1
-            const suffice = ` (#${count + 1})`
-            setAnimalName(prev => `${prev}${suffice}`)
+            const suffix = ` (#${count + 1})`
+            setAnimalName(prev => `${prev}${suffix}`)
             setIsDuplicateNameDetected(false)
             setMatchingAnimal(null)
-            toast.info(`Diferenciando como novo cadastro: ${animalName}${suffice}`)
-        } catch (err) {
+            toast.info(`Diferenciando como novo cadastro: ${currentName}${suffix}`)
+        } catch (err: unknown) {
             setAnimalName(prev => `${prev} (Novo)`)
             setIsDuplicateNameDetected(false)
         }
@@ -195,6 +221,8 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
 
     // Broad History Unification: Load past records when name or ID changes
     useEffect(() => {
+        const controller = new AbortController()
+
         const loadHistory = async () => {
             const hasId = data.animal_id || matchingAnimal?.id
             const hasName = animalName && animalName.length >= 2
@@ -206,25 +234,27 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
 
             setIsLoadingHistory(true)
             try {
-                // Primary: Fetch by ID (includes broad name matching inside the API)
-                let endpoint = hasId 
+                const endpoint = hasId 
                     ? `/api/animals/${hasId}/history` 
                     : `/api/animals/history-by-name?name=${encodeURIComponent(animalName)}`
 
-                const res = await fetch(endpoint)
+                const res = await fetch(endpoint, { signal: controller.signal })
                 if (res.ok) {
                     const { history: historyData } = await res.json()
-                    // Keep past events only (API now handles name duplicates)
-                    setHistory(historyData.filter((h: any) => h.id !== data.id))
+                    setHistory((historyData as HistoryEntry[]).filter(h => h.id !== data.id))
                 }
-            } catch (err) {
-                console.error("History load error", err)
+            } catch (err: unknown) {
+                // Ignora cancelamentos de AbortController (efeito re-executado)
+                if (err instanceof Error && err.name !== 'AbortError') {
+                    console.error("History load error", err)
+                }
             } finally {
                 setIsLoadingHistory(false)
             }
         }
 
         loadHistory()
+        return () => controller.abort()
     }, [data.animal_id, matchingAnimal?.id, animalName, data.id])
 
     // Unified Timeline Logic: Current + History
@@ -238,7 +268,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
         }
         
         // Combine, filter out current if it exists in history (deduplicate by id)
-        const pastEvents = (history || []).filter((h: any) => h.id !== data.id)
+        const pastEvents = history.filter(h => h.id !== data.id)
         const combined = [currentEvent, ...pastEvents]
         
         // Sort by date descending

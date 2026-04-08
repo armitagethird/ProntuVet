@@ -1,10 +1,18 @@
 import { GoogleGenerativeAI, GenerationConfig } from "@google/generative-ai";
 
-const API_KEY = process.env.GEMINI_API_KEY || "";
+// Fail-fast: garante que a chave esteja configurada antes de qualquer chamada
+const API_KEY = process.env.GEMINI_API_KEY;
+if (!API_KEY) {
+    throw new Error(
+        '[Config] GEMINI_API_KEY não está configurada. ' +
+        'Defina-a no .env.local (desenvolvimento) e nas variáveis de ambiente do Vercel (produção).'
+    );
+}
+
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// Modelo solicitado: Gemini 2.5 Flash-Lite
-const MODEL_NAME = "gemini-2.5-flash-lite";
+// Modelo configurável via env para facilitar trocas sem alterar código
+const MODEL_NAME = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-lite";
 
 /**
  * Extrai dados estruturados diretamente do áudio (Nativo Multimodal).
@@ -70,9 +78,10 @@ Retorne APENAS o JSON, sem explicações.`;
 
         const response = await result.response;
         return response.text();
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro desconhecido'
         console.error("[Gemini] Erro no processamento multimodal:", error);
-        throw new Error(`Falha ao processar áudio: ${error.message}`);
+        throw new Error(`Falha ao processar áudio: ${message}`);
     }
 }
 
@@ -112,7 +121,7 @@ Retorne APENAS o JSON:
         const result = await model.generateContent(query);
         const response = await result.response;
         return response.text();
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Gemini] Erro na análise de busca:", error);
         return JSON.stringify({ animal: query, tutor: null, startDate: null, endDate: null, keywords: query });
     }

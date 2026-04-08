@@ -1,0 +1,19 @@
+# .vercelignore — instrui a Vercel a não processar estes arquivos durante o deploy
+# Referência: https://vercel.com/docs/concepts/deployments/build-step#ignore-file
+
+# Scripts SQL (apenas referência — o banco é gerenciado via Supabase Dashboard)
+*.sql
+
+# Documentação interna
+PLANOS_IA.md
+SECURITY.md
+_memoria/
+inspirações/
+Assets/
+
+# Arquivos do agente de IA
+ecc/
+
+# Logs e artefatos de build local
+*.txt
+tsconfig.tsbuildinfo

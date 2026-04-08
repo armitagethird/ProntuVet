@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateProntuario } from '@/lib/gemini'
+import { findOrCreateAnimal } from '@/lib/supabase/animals'
 import { z } from 'zod'
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
@@ -179,38 +180,10 @@ export async function POST(req: NextRequest) {
             title = `Consulta: ${animalName.substring(0, 40)}`
         }
 
-        // 4. Handle Animals table (Find or Create)
-        let animalId = null;
+        // 4. Handle Animals table (Find or Create) — via shared utility
+        let animalId: string | null = null;
         if (animalName) {
-            // Check if animal exists for this user (case insensitive-ish)
-            const { data: existingAnimals, error: fetchError } = await supabase
-                .from('animals')
-                .select('id, name')
-                .eq('user_id', user.id)
-                .ilike('name', animalName)
-                .limit(1);
-
-            if (existingAnimals && existingAnimals.length > 0) {
-                animalId = existingAnimals[0].id;
-            } else {
-                // Create new animal
-                const { data: newAnimal, error: createError } = await supabase
-                    .from('animals')
-                    .insert({
-                        user_id: user.id,
-                        name: animalName,
-                        species: animalSpecies,
-                    })
-                    .select('id')
-                    .single()
-
-                if (!createError && newAnimal) {
-                    animalId = newAnimal.id;
-                } else {
-                    console.error("Erro ao criar animal:", createError);
-                    // Silently continue, animalId remains null
-                }
-            }
+            animalId = await findOrCreateAnimal(supabase, user.id, animalName, animalSpecies)
         }
 
         // 5. Save to Database
@@ -240,7 +213,8 @@ export async function POST(req: NextRequest) {
         // 6. Return Success
         return NextResponse.json({ success: true, consultationId: dbData.id })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Erro ao processar sua consulta'
         console.error('API Error:', error)
         return NextResponse.json(
             { error: 'Ocorreu um erro ao processar sua consulta. Por favor, tente novamente.' },

@@ -40,12 +40,25 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local database setup scripts
+# -------------------------------------------------------
+# Arquivos internos de desenvolvimento — não vão pro repo
+# -------------------------------------------------------
 
-# Obsidian vault config (gerado automaticamente pelo Obsidian)
-_memoria/.obsidian/workspace.json
-_memoria/.obsidian/workspace-mobile.json
+# Antigravity ECC (framework do agente de IA) — repo aninhado, nunca commitar
+/ecc/
+/~/
 
-# Local temporary files
+# Documentação interna e vault Obsidian
+/_memoria/
+/.obsidian/
+
+# Referências visuais e inspirações de design
+/inspirações/
+
+# Assets fora da estrutura do Next.js (ícone deve estar em /public/)
+/Assets/
+
+# Logs de debug do editor/build
 ts_errors.txt
 build_error.txt
+lint-errors.txt

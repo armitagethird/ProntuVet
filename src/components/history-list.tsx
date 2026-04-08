@@ -16,7 +16,7 @@ interface Consultation {
     created_at: string
     tags?: string[]
     tutor_name?: string
-    structured_content?: any
+    structured_content?: Record<string, string>
     animal_id?: string
     resumo_trilha?: string
     animals?: { id: string; name: string; species: string }
@@ -88,11 +88,6 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
         if (lowSpecies.includes('coelho')) return <Rabbit className="w-6 h-6" />;
         if (lowSpecies.includes('cachorro') || lowSpecies.includes('cão') || lowSpecies.includes('canin')) return <Dog className="w-6 h-6" />;
         return <PawPrint className="w-6 h-6" />;
-    };
-
-    const getAnimalIconLarge = (species?: string) => {
-        const icon = getAnimalIcon(species);
-        return icon;
     };
 
     // Group by animal if in animal view mode
@@ -266,7 +261,7 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
                                     <div className="flex items-center justify-between pb-2 border-b border-border/40">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-teal-500/10 rounded-lg text-teal-600">
-                                                {getAnimalIconLarge(cons[0]?.animals?.species)}
+                                                {getAnimalIcon(cons[0]?.animals?.species)}
                                             </div>
                                             <h2 className="text-2xl font-bold text-foreground capitalize">{animalName}</h2>
                                             <span className="bg-muted px-2.5 py-0.5 rounded-full text-xs font-semibold text-muted-foreground ml-2">

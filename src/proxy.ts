@@ -11,6 +11,22 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()')
     
+    // Content Security Policy — protege contra XSS
+    // 'unsafe-inline' em style-src é necessário para Tailwind/shadcn em prod
+    response.headers.set(
+        'Content-Security-Policy',
+        [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval para Next.js em dev
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "font-src 'self' https://fonts.gstatic.com",
+            "img-src 'self' data: blob:",
+            "media-src 'self' blob:", // necessário para gravação de áudio via MediaRecorder
+            "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com",
+            "frame-ancestors 'none'",
+        ].join('; ')
+    )
+
     // Strict Transport Security (HSTS) - only for production
     if (process.env.NODE_ENV === 'production') {
         response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
