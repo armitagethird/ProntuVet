@@ -3,28 +3,41 @@
 import { useState } from 'react'
 import { HelpCircle, Mail, BookOpen, RefreshCw, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import { usePathname, useRouter } from 'next/navigation'
 
 export function HelpCenter() {
   const [isOpen, setIsOpen] = useState(false)
   const supabase = createClient()
+  const pathname = usePathname()
+  const router = useRouter()
+
+  // Hide help center on login and landing pages
+  if (pathname === '/login' || pathname === '/' || pathname === '/auth') {
+    return null
+  }
 
   const handleRestartTutorial = async () => {
     try {
-      // Reset the metadata
+      // 1. First, navigate to dashboard to ensure tutorial elements are present
+      router.push('/dashboard')
+      
+      // 2. Reset the metadata in Supabase
       const { error } = await supabase.auth.updateUser({
         data: { has_seen_tutorial: false }
       })
 
       if (error) throw error
 
-      toast.success('Reiniciando tutorial...')
+      toast.success('Reiniciando tutorial na Dashboard...')
       setIsOpen(false)
       
-      // Dispatch custom event to trigger the OnboardingTour without page reload
-      window.dispatchEvent(new CustomEvent('restart-onboarding'))
+      // 3. Dispatch custom event to trigger the OnboardingTour
+      // Small timeout to allow the navigation to resolve if already navigating
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('restart-onboarding'))
+      }, 300)
     } catch (error) {
       console.error('Error resetting tutorial:', error)
       toast.error('Erro ao reiniciar tutorial')
@@ -40,7 +53,7 @@ export function HelpCenter() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40, scale: 0.3 }}
             style={{ transformOrigin: 'bottom right' }}
-            className="w-80 bg-background/60 backdrop-blur-3xl border border-teal-500/20 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.12)] mb-2"
+            className="w-80 bg-background/60 backdrop-blur-3xl border border-teal-500/20 rounded-[2.5rem] overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.12)] mb-2 gpu-accelerated"
           >
             {/* Header with subtle gradient */}
             <div className="bg-gradient-to-r from-teal-500/10 to-blue-500/10 p-6 border-b border-teal-500/10">
@@ -104,7 +117,7 @@ export function HelpCenter() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-teal-500/20 border-2 border-white/20 hover:shadow-teal-500/40 transition-shadow z-[70]"
+        className="w-14 h-14 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-teal-500/20 border-2 border-white/20 hover:shadow-teal-500/40 transition-shadow z-[70] gpu-accelerated"
       >
         <AnimatePresence mode="wait">
           {isOpen ? (
