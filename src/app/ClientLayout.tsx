@@ -3,9 +3,6 @@
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DockNav } from "@/components/ui/dock-nav";
-// removed direct import for Toaster
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import dynamic from "next/dynamic";
 
 // Dynamically import heavy/non-critical components to reduce first-paint JS bundle
@@ -45,9 +42,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <DockNav />
       <HelpCenter />
       <OnboardingTour />
-      <Analytics />
       <Toaster richColors position="top-right" closeButton />
-      <SpeedInsights />
     </>
   );
 }
