@@ -6,8 +6,11 @@ import { DockNav } from "@/components/ui/dock-nav";
 import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { HelpCenter } from "@/components/help-center";
-import { OnboardingTour } from "@/components/onboarding-tour";
+import dynamic from "next/dynamic";
+
+// Dynamically import heavy/non-critical components to reduce first-paint JS bundle
+const HelpCenter = dynamic(() => import("@/components/help-center").then(mod => mod.HelpCenter), { ssr: false });
+const OnboardingTour = dynamic(() => import("@/components/onboarding-tour").then(mod => mod.OnboardingTour), { ssr: false });
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -19,13 +22,14 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       </div>
       
       <main className="flex-1 flex flex-col min-h-screen">
-        <AnimatePresence mode="wait">
+        {/* Changed to popLayout for immediate concurrent transitions, making it feel 2x faster */}
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.div
             key={pathname}
-            initial={{ opacity: 0, x: 10, filter: 'blur(4px)' }}
-            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-            exit={{ opacity: 0, x: -10, filter: 'blur(4px)' }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            initial={{ opacity: 0, y: 5, filter: 'blur(8px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: 0.98, filter: 'blur(8px)' }}
+            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }} // Native-style quick cubic-bezier
             className="flex-1 flex flex-col"
           >
             {children}
@@ -37,7 +41,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <HelpCenter />
       <OnboardingTour />
       <Analytics />
-      <Toaster richColors position="top-right" />
+      <Toaster richColors position="top-right" closeButton />
       <SpeedInsights />
     </>
   );

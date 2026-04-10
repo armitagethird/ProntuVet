@@ -39,6 +39,16 @@ function DockIcon({
   const iconSizeSync = useTransform(distance, [-120, 0, 120], [22, 32, 22])
   const iconSize = useSpring(iconSizeSync, { mass: 0.1, stiffness: 150, damping: 12 })
 
+  // Optimized trigger to start load on touch start
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Start prefetching the second the user touches the icon (100-200ms advantage)
+    router.prefetch(item.href)
+    
+    if (e.pointerType === 'touch' || e.button === 0) {
+      onActivate(item.href)
+    }
+  }
+
   return (
     <motion.div
       ref={ref}
@@ -53,12 +63,7 @@ function DockIcon({
     >
       <Link 
         href={item.href} 
-        onPointerDown={(e) => {
-          // Prevent ghost clicks and trigger immediately
-          if (e.pointerType === 'touch' || e.button === 0) {
-            onActivate(item.href)
-          }
-        } }
+        onPointerDown={handlePointerDown}
         className="flex items-center justify-center w-full h-full"
       >
         <div className="absolute bottom-[calc(100%+12px)] px-3 py-1.5 text-xs font-semibold text-foreground bg-popover/95 backdrop-blur-md border border-border/50 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-xl z-50 transform group-hover:-translate-y-1">
@@ -83,33 +88,32 @@ export function DockNav() {
     setOptimisticPath(null)
   }, [pathname])
 
-  if (pathname === '/login' || pathname === '/') {
+  if (pathname === '/login' || pathname === '/' || pathname === '/auth') {
     return null;
   }
 
   const triggerHaptic = useCallback(() => {
     if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
       try {
-        navigator.vibrate(5) // Ultra-subtle haptic tap
+        navigator.vibrate(8) // Slightly more distinct tap for mobile speed feedback
       } catch (e) {}
     }
   }, [])
 
   const handleNavClick = (href: string) => {
+    if (pathname === href) return
     setOptimisticPath(href)
     triggerHaptic()
-  }
-
-  const handleMouseEnter = (href: string) => {
-    router.prefetch(href)
+    // Explicitly navigate on touch to ensure instantaneous start
+    router.push(href)
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-safe pb-safe">
       <motion.nav
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
-        className="flex items-end gap-3 px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
+        className="flex items-end gap-3 px-3 py-2.5 bg-background/80 backdrop-blur-2xl border border-border/40 rounded-2xl shadow-[0_20px_50px_-15px_rgba(0,0,0,0.15)] ring-1 ring-white/10"
       >
         {dockItems.map((item) => {
           const currentPath = optimisticPath || pathname
