@@ -18,54 +18,73 @@ function WaveVisualizer({ stream, isRecording, isPaused }: { stream: MediaStream
     const animationRef = useRef<number | null>(null)
     const analyserRef = useRef<AnalyserNode | null>(null)
     const audioContextRef = useRef<AudioContext | null>(null)
+    const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
     
     const bars = Array.from({ length: 40 })
 
     useEffect(() => {
+        // Somente roda o visualizador se tivermos um stream e estivermos gravando ativamente
         if (isRecording && stream && !isPaused) {
-            // Setup Audio API
-            if (!audioContextRef.current) {
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-            }
-            
-            const context = audioContextRef.current
-            const analyser = context.createAnalyser()
-            analyser.fftSize = 256
-            analyserRef.current = analyser
-            
-            const source = context.createMediaStreamSource(stream)
-            source.connect(analyser)
-            
-            const bufferLength = analyser.frequencyBinCount
-            const dataArray = new Uint8Array(bufferLength)
-            
-            const updateVisualizer = () => {
-                if (!analyserRef.current || !isRecording || isPaused) return
+            try {
+                if (!audioContextRef.current) {
+                    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+                }
                 
-                analyserRef.current.getByteFrequencyData(dataArray)
+                const context = audioContextRef.current
                 
-                // Update DOM elements directly for maximum performance (Direct Ref pattern)
-                for (let i = 0; i < barsRef.current.length; i++) {
-                    const bar = barsRef.current[i]
-                    if (bar) {
-                        // Use a subset of frequencies and map to height
-                        const dataIndex = Math.floor((i / barsRef.current.length) * (bufferLength / 2))
-                        const value = dataArray[dataIndex]
-                        const height = (value / 255) * 60 + 4
-                        bar.style.height = `${height}px`
-                        bar.style.opacity = `${Math.max(0.2, value / 255)}`
+                if (context.state === 'suspended') {
+                    context.resume()
+                }
+
+                const analyser = context.createAnalyser()
+                analyser.fftSize = 256
+                analyserRef.current = analyser
+                
+                if (sourceRef.current) {
+                    sourceRef.current.disconnect()
+                }
+
+                const source = context.createMediaStreamSource(stream)
+                source.connect(analyser)
+                sourceRef.current = source
+                
+                const bufferLength = analyser.frequencyBinCount
+                const dataArray = new Uint8Array(bufferLength)
+                
+                const updateVisualizer = () => {
+                    if (!analyserRef.current || !isRecording || isPaused) return
+                    
+                    analyserRef.current.getByteFrequencyData(dataArray)
+                    
+                    for (let i = 0; i < barsRef.current.length; i++) {
+                        const bar = barsRef.current[i]
+                        if (bar) {
+                            const dataIndex = Math.floor((i / barsRef.current.length) * (bufferLength / 2))
+                            const value = dataArray[dataIndex]
+                            const height = (value / 255) * 60 + 4
+                            bar.style.height = `${height}px`
+                            bar.style.opacity = `${Math.max(0.2, value / 255)}`
+                        }
                     }
+                    
+                    animationRef.current = requestAnimationFrame(updateVisualizer)
                 }
                 
                 animationRef.current = requestAnimationFrame(updateVisualizer)
+            } catch (err) {
+                console.error("Visualizer Error:", err)
+            }
+        } else {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current)
+                animationRef.current = null
             }
             
-            animationRef.current = requestAnimationFrame(updateVisualizer)
-        } else {
-            // Cleanup or Pause
-            if (animationRef.current) cancelAnimationFrame(animationRef.current)
+            if (sourceRef.current) {
+                sourceRef.current.disconnect()
+                sourceRef.current = null
+            }
             
-            // Reset bars to baseline
             barsRef.current.forEach(bar => {
                 if (bar) {
                     bar.style.height = '4px'
@@ -78,6 +97,14 @@ function WaveVisualizer({ stream, isRecording, isPaused }: { stream: MediaStream
             if (animationRef.current) cancelAnimationFrame(animationRef.current)
         }
     }, [isRecording, stream, isPaused])
+
+    useEffect(() => {
+        return () => {
+            if (audioContextRef.current) {
+                audioContextRef.current.close().catch(console.error)
+            }
+        }
+    }, [])
 
     return (
         <div className="flex items-center justify-center gap-[3px] h-24 w-full px-8 gpu-accelerated">
@@ -106,28 +133,29 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
     const router = useRouter()
 
+    // Cleanup global - APENAS no unmount total do componente
     useEffect(() => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current)
             if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
                 mediaRecorderRef.current.stop()
             }
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop())
-            }
         }
-    }, [stream])
+    }, [])
 
     const startRecording = async () => {
         try {
-            resetRecorder()
+            if (timerRef.current) clearInterval(timerRef.current)
+            audioChunksRef.current = []
+            setErrorDetails(null)
+            setIsPaused(false)
+            setRecordingTime(0)
+            
             const newStream = await navigator.mediaDevices.getUserMedia({ audio: true })
             setStream(newStream)
             
             const mediaRecorder = new MediaRecorder(newStream)
-
             mediaRecorderRef.current = mediaRecorder
-            audioChunksRef.current = []
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -139,8 +167,8 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
             mediaRecorder.start(1000)
             setIsRecording(true)
-            setIsPaused(false)
 
+            // Timer isolado de mudanças de estado de stream
             timerRef.current = setInterval(() => {
                 setRecordingTime((prev) => {
                     if (prev >= 1799) {
@@ -164,7 +192,10 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.pause()
             setIsPaused(true)
-            if (timerRef.current) clearInterval(timerRef.current)
+            if (timerRef.current) {
+                clearInterval(timerRef.current)
+                timerRef.current = null
+            }
         }
     }
 
@@ -172,6 +203,8 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'paused') {
             mediaRecorderRef.current.resume()
             setIsPaused(false)
+            
+            if (timerRef.current) clearInterval(timerRef.current)
             timerRef.current = setInterval(() => {
                 setRecordingTime((prev) => prev + 1)
             }, 1000)
@@ -184,19 +217,34 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
             mediaRecorderRef.current.stop()
             setIsRecording(false)
             setIsPaused(false)
-            if (timerRef.current) clearInterval(timerRef.current)
             
-            // Stop tracks immediately after stopping recording for better privacy
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop())
-                setStream(null)
+            if (timerRef.current) {
+                clearInterval(timerRef.current)
+                timerRef.current = null
             }
         }
     }
 
     const handleRecordingStop = async () => {
+        // Coleta tracks e para o hardware DEPOIS de fechar o MediaRecorder
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop()
+            })
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        
+        // Verificação de segurança: Áudio não pode ser vazio
+        if (audioBlob.size < 100) {
+            console.error("Audio blob too small:", audioBlob.size)
+            toast.error("Erro: O áudio gravado parece estar vazio.")
+            setIsProcessing(false)
+            return
+        }
+
         await processAudio(audioBlob)
+        setStream(null)
     }
 
     const processAudio = async (audioBlob: Blob) => {
@@ -210,7 +258,10 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                 body: formData,
             })
 
-            if (!response.ok) throw new Error('Falha ao processar o áudio com a IA')
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.message || 'Falha ao processar o áudio com a IA')
+            }
 
             const result = await response.json()
             toast.success('Consulta estruturada com sucesso!')
@@ -224,17 +275,21 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
     }
 
     const resetRecorder = () => {
+        if (timerRef.current) clearInterval(timerRef.current)
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop()
+        }
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop())
+        }
+        
         setRecordingTime(0)
         setErrorDetails(null)
         setIsRecording(false)
         setIsPaused(false)
         setIsProcessing(false)
+        setStream(null)
         audioChunksRef.current = []
-        if (timerRef.current) clearInterval(timerRef.current)
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop())
-            setStream(null)
-        }
     }
 
     const formatTime = (seconds: number) => {
@@ -247,7 +302,6 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
         <div className="w-full flex flex-col items-center justify-center min-h-[500px] px-4 animate-fade-in-up">
             <Card className="w-full max-w-lg overflow-hidden border-none bg-transparent shadow-none">
                 <CardContent className="flex flex-col items-center gap-10 py-12">
-                    {/* Centered Header */}
                     <div className="text-center space-y-4">
                         <motion.h1 
                             initial={{ scale: 0.9, opacity: 0 }}
@@ -280,7 +334,6 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                         </div>
                     ) : (
                         <div className="w-full flex flex-col items-center gap-12">
-                            {/* Visualizer Area */}
                             <div className="w-full h-32 flex flex-col items-center justify-center relative">
                                 <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent rounded-3xl -z-10" />
                                 <WaveVisualizer stream={stream} isRecording={isRecording} isPaused={isPaused} />
@@ -289,7 +342,6 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                                 </div>
                             </div>
 
-                            {/* Main Controls Area */}
                             <div className="flex flex-col items-center gap-8 w-full">
                                 {!isRecording ? (
                                     <div className="flex flex-col items-center gap-6">
