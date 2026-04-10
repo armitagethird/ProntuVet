@@ -24,7 +24,7 @@ interface DashboardClientProps {
 const STORAGE_KEY = 'prontuvet_selected_template'
 
 export function DashboardClient({ userFirstName, templates }: DashboardClientProps) {
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system_default')
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
   const [isLoaded, setIsLoaded] = useState(false)
 
   // Load from localStorage on mount
@@ -33,7 +33,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
     if (saved) {
       // Verify if the saved template still exists in the user's templates list
       // Or if it's the system default. If not found, fallback to system_default.
-      const exists = saved === 'system_default' || templates.some(t => t.id === saved)
+      const exists = saved === 'system-default' || templates.some(t => t.id === saved)
       if (exists) {
         setSelectedTemplateId(saved)
       }
@@ -49,7 +49,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
   }
 
   const getSelectedName = () => {
-    if (selectedTemplateId === 'system_default') return 'Prontuário Padrão';
+    if (selectedTemplateId === 'system-default') return 'Prontuário Padrão';
     const template = templates.find(t => t.id === selectedTemplateId);
     return template ? template.name : selectedTemplateId;
   }
@@ -83,7 +83,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
 
       <div className="w-full max-w-md flex flex-col gap-8 transition-all duration-700">
         {/* Template Selector Card */}
-        <div className="bg-card/30 backdrop-blur-xl border border-teal-500/10 rounded-[2rem] p-6 shadow-xl shadow-black/5 relative overflow-hidden group">
+        <div id="template-selector" className="bg-card/30 backdrop-blur-xl border border-teal-500/10 rounded-[2rem] p-6 shadow-xl shadow-black/5 relative overflow-hidden group">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent" />
              <label className="text-[10px] font-bold text-teal-600/60 uppercase tracking-[0.2em] mb-3 block px-1">
                  Modelo de Prontuário Selecionado
@@ -95,7 +95,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
                     </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-teal-500/10 backdrop-blur-2xl p-2">
-                    <SelectItem value="system_default" className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
+                    <SelectItem value="system-default" className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
                         Prontuário Padrão
                     </SelectItem>
                     {templates.map((t) => (
@@ -108,7 +108,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </div>
 
         {/* Main Action Link */}
-        <Link href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-3xl">
+        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-3xl">
           <div className="relative overflow-hidden border border-teal-500/20 bg-card/60 backdrop-blur-xl rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.03] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-6">
             {/* Hover Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

@@ -21,5 +21,12 @@ Este arquivo serve como um guia vivo para garantir que novas funcionalidades do 
 - [ ] **Validar Tamanho**: Limite o tamanho máximo do arquivo (ex: 25MB para áudio).
 - [ ] **Validar Tipo MIME**: Verifique se o arquivo é realmente do tipo esperado (`audio/*`).
 
+## 🛡️ Blindagem de Infraestrutura (Supabase Hardening)
+- [x] **Funções SQL Seguras**: Todas as funções `SECURITY DEFINER` (como `handle_new_user`) possuem `search_path = public` fixo para evitar ataques de sequestro de caminho.
+- [x] **Políticas de Storage Granulares**:
+    - O bucket `avatars` possui leitura pública apenas para membros autenticados (ou visualização via URL assinada/pública se explicitamente permitido).
+    - O bucket `medical-attachments` é **estritamente privado** e configurado com RLS que isola os dados por `auth.uid()`.
+- [x] **RLS Mandatório**: Todas as tabelas no esquema `public` possuem Row Level Security (RLS) habilitado.
+
 ---
 *Última atualização: 2026-04-06*

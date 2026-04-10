@@ -7,10 +7,10 @@ import { Home, PawPrint, FileText, User } from 'lucide-react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 
 const dockItems = [
-  { href: '/dashboard', icon: Home, label: 'Início', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
-  { href: '/history', icon: PawPrint, label: 'Pacientes', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-  { href: '/templates', icon: FileText, label: 'Modelos', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
-  { href: '/profile', icon: User, label: 'Perfil', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+  { href: '/dashboard', icon: Home, label: 'Início', color: 'text-orange-500', bgColor: 'bg-orange-500/10', id: 'nav-home' },
+  { href: '/history', icon: PawPrint, label: 'Pacientes', color: 'text-blue-500', bgColor: 'bg-blue-500/10', id: 'nav-history' },
+  { href: '/templates', icon: FileText, label: 'Modelos', color: 'text-teal-500', bgColor: 'bg-teal-500/10', id: 'nav-templates' },
+  { href: '/profile', icon: User, label: 'Perfil', color: 'text-purple-500', bgColor: 'bg-purple-500/10', id: 'nav-profile' },
 ]
 
 function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mouseX: any }) {
@@ -30,6 +30,7 @@ function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mo
   return (
     <motion.div
       ref={ref}
+      id={item.id}
       style={{ width, height: width }}
       className={`relative flex items-center justify-center rounded-xl transition-colors duration-200 group ${
         isActive 

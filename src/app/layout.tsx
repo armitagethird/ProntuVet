@@ -4,6 +4,8 @@ import { DockNav } from "@/components/ui/dock-nav";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { HelpCenter } from "@/components/help-center";
+import { OnboardingTour } from "@/components/onboarding-tour";
 const outfit = Outfit({
   variable: "--font-outfit",
   subsets: ["latin"],
@@ -33,6 +35,8 @@ export default function RootLayout({
         </div>
         {children}
         <DockNav />
+        <HelpCenter />
+        <OnboardingTour />
         <Toaster />
         <SpeedInsights />
       </body>
