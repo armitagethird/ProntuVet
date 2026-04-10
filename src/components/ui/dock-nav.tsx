@@ -63,6 +63,7 @@ function DockIcon({
     >
       <Link 
         href={item.href} 
+        prefetch={true}
         onPointerDown={handlePointerDown}
         className="flex items-center justify-center w-full h-full"
       >
