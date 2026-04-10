@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Activity, Dog } from 'lucide-react'
-import Link from 'next/link'
+import { useState, useEffect, useTransition } from 'react'
+import { Activity, Dog, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { 
   Select, 
   SelectContent, 
@@ -27,6 +27,8 @@ const STORAGE_KEY = 'prontuvet_selected_template'
 
 export function DashboardClient({ userFirstName, templates }: DashboardClientProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
 
   // Load from localStorage on mount
@@ -54,6 +56,12 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
     if (selectedTemplateId === 'system-default') return 'Prontuário Padrão';
     const template = templates.find(t => t.id === selectedTemplateId);
     return template ? template.name : selectedTemplateId;
+  }
+
+  const handleStartListening = () => {
+    startTransition(() => {
+      router.push(`/consultation/new?templateId=${selectedTemplateId}`)
+    })
   }
 
 
@@ -112,21 +120,29 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </div>
 
         {/* Main Action Link */}
-        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} suppressHydrationWarning className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem]">
+        <button 
+          id="start-listening" 
+          onClick={handleStartListening}
+          disabled={isPending}
+          suppressHydrationWarning 
+          className="group w-full focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem] disabled:opacity-90 disabled:cursor-wait text-left"
+        >
           <div className="relative overflow-hidden border border-teal-500/20 bg-card/85 backdrop-blur-sm rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.02] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-4">
             {/* Hover Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className={`absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 transition-opacity duration-500 ${isPending ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`} />
             
-            <div className="relative bg-teal-500 bg-gradient-to-br from-teal-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl shadow-teal-500/20 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 z-10">
-                <Dog className="w-8 h-8" />
+            <div className={`relative bg-teal-500 bg-gradient-to-br from-teal-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl shadow-teal-500/20 transition-transform duration-500 z-10 ${isPending ? 'scale-110' : 'group-hover:scale-110 group-hover:rotate-3'}`}>
+                {isPending ? <Loader2 className="w-8 h-8 animate-spin" /> : <Dog className="w-8 h-8" />}
             </div>
             
-            <div className="relative z-10 transition-transform duration-500 group-hover:translate-y-[-2px]">
-              <h2 className="text-2xl font-bold tracking-tight mb-1 group-hover:text-teal-600 transition-colors">Iniciar Escuta</h2>
-              <p className="text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">Gerar prontuário com IA</p>
+            <div className={`relative z-10 transition-transform duration-500 ${isPending ? 'translate-y-[-2px]' : 'group-hover:translate-y-[-2px]'}`}>
+              <h2 className={`text-2xl font-bold tracking-tight mb-1 transition-colors ${isPending ? 'text-teal-600' : 'group-hover:text-teal-600'}`}>
+                  {isPending ? 'Carregando Módulo...' : 'Iniciar Escuta'}
+              </h2>
+              <p className={`text-sm text-muted-foreground transition-colors ${isPending ? 'text-foreground/80' : 'group-hover:text-foreground/80'}`}>Gerar prontuário com IA</p>
             </div>
           </div>
-        </Link>
+        </button>
       </div>
     </div>
   )
