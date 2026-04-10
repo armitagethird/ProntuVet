@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useTransition } from 'react'
+import { useState, useEffect, useTransition, Suspense, use } from 'react'
 import { Activity, Dog, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { 
@@ -20,42 +20,48 @@ interface Template {
 
 interface DashboardClientProps {
   userFirstName: string
-  templates: Template[]
+  templatesPromise: Promise<Template[]>
 }
 
 const STORAGE_KEY = 'prontuvet_selected_template'
 
-export function DashboardClient({ userFirstName, templates }: DashboardClientProps) {
+export function DashboardClient({ userFirstName, templatesPromise }: DashboardClientProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
-  const [isLoaded, setIsLoaded] = useState(false)
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount. Validamos se o ID passado no localstorage bate com os templates no banco (promessa)
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      // Verify if the saved template still exists in the user's templates list
-      // Or if it's the system default. If not found, fallback to system_default.
-      const exists = saved === 'system-default' || templates.some(t => t.id === saved)
-      if (exists) {
-        setSelectedTemplateId(saved)
+    let active = true;
+    const fetchLocalState = async () => {
+      try {
+        const templates = await templatesPromise;
+        if (!active) return;
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const exists = saved === 'system-default' || templates.some((t: any) => t.id === saved);
+          if (exists) {
+            setSelectedTemplateId(saved);
+          }
+        }
+      } catch (err) {
+        console.error(err);
       }
-    }
-    setIsLoaded(true)
-  }, [templates])
+    };
+    fetchLocalState();
+    return () => { active = false };
+  }, [templatesPromise])
+
+  // Prefetch agressivo invisível: Cacheia o layout gigante do gravador de áudio antes mesmo de você clicar!
+  useEffect(() => {
+    router.prefetch('/consultation/new')
+  }, [router])
 
   // Save to localStorage on change
   const handleTemplateChange = (id: string | null) => {
     if (!id) return;
     setSelectedTemplateId(id)
     localStorage.setItem(STORAGE_KEY, id)
-  }
-
-  const getSelectedName = () => {
-    if (selectedTemplateId === 'system-default') return 'Prontuário Padrão';
-    const template = templates.find(t => t.id === selectedTemplateId);
-    return template ? template.name : selectedTemplateId;
   }
 
   const handleStartListening = () => {
@@ -100,23 +106,13 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
              <label className="text-[9px] font-bold text-teal-600/60 uppercase tracking-[0.2em] mb-2 block px-1">
                  Modelo de Prontuário
              </label>
-             <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                <SelectTrigger className="w-full bg-background/40 border-teal-500/20 focus:ring-teal-500/30 rounded-2xl h-12 text-sm font-medium shadow-sm transition-all hover:border-teal-500/40">
-                    <SelectValue placeholder="Selecione um modelo">
-                        <span suppressHydrationWarning>{getSelectedName()}</span>
-                    </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-teal-500/10 backdrop-blur-2xl p-2">
-                    <SelectItem value="system-default" className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
-                        Prontuário Padrão
-                    </SelectItem>
-                    {templates.map((t) => (
-                        <SelectItem key={t.id} value={t.id} className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
-                            {t.name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-             </Select>
+             <Suspense fallback={<div className="h-12 w-full animate-pulse bg-teal-500/10 rounded-2xl border border-teal-500/20" />}>
+                 <TemplateSelectorUI 
+                     templatesPromise={templatesPromise} 
+                     selectedTemplateId={selectedTemplateId} 
+                     handleTemplateChange={handleTemplateChange} 
+                 />
+             </Suspense>
         </div>
 
         {/* Main Action Link */}
@@ -147,3 +143,34 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
     </div>
   )
 }
+
+function TemplateSelectorUI({ templatesPromise, selectedTemplateId, handleTemplateChange }: any) {
+    const templates = use(templatesPromise) as Template[]
+    
+    const getSelectedName = () => {
+        if (selectedTemplateId === 'system-default') return 'Prontuário Padrão';
+        const template = templates.find(t => t.id === selectedTemplateId);
+        return template ? template.name : selectedTemplateId;
+    }
+
+    return (
+        <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+            <SelectTrigger className="w-full bg-background/40 border-teal-500/20 focus:ring-teal-500/30 rounded-2xl h-12 text-sm font-medium shadow-sm transition-all hover:border-teal-500/40">
+                <SelectValue placeholder="Selecione um modelo">
+                    <span suppressHydrationWarning>{getSelectedName()}</span>
+                </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-teal-500/10 backdrop-blur-2xl p-2">
+                <SelectItem value="system-default" className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
+                    Prontuário Padrão
+                </SelectItem>
+                {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id} className="rounded-xl py-3 focus:bg-teal-500/10 focus:text-teal-700 cursor-pointer transition-colors">
+                        {t.name}
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    )
+}
+
