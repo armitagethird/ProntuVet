@@ -1,8 +1,8 @@
 "use client"
 
-import { useRef } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Home, PawPrint, FileText, User } from 'lucide-react'
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'
 
@@ -13,7 +13,19 @@ const dockItems = [
   { href: '/profile', icon: User, label: 'Perfil', color: 'text-purple-500', bgColor: 'bg-purple-500/10', id: 'nav-profile' },
 ]
 
-function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mouseX: any }) {
+function DockIcon({ 
+  item, 
+  isActive, 
+  mouseX, 
+  onActivate, 
+  router 
+}: { 
+  item: any, 
+  isActive: boolean, 
+  mouseX: any, 
+  onActivate: (href: string) => void, 
+  router: any 
+}) {
   const ref = useRef<HTMLDivElement>(null)
   
   const distance = useTransform(mouseX, (val: number) => {
@@ -31,6 +43,7 @@ function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mo
     <motion.div
       ref={ref}
       id={item.id}
+      onMouseEnter={() => router.prefetch(item.href)}
       style={{ width, height: width }}
       className={`relative flex items-center justify-center rounded-xl transition-colors duration-200 group ${
         isActive 
@@ -38,7 +51,16 @@ function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mo
           : 'bg-muted/50 hover:bg-muted border border-border/30 text-muted-foreground'
       }`}
     >
-      <Link href={item.href} className="flex items-center justify-center w-full h-full">
+      <Link 
+        href={item.href} 
+        onPointerDown={(e) => {
+          // Prevent ghost clicks and trigger immediately
+          if (e.pointerType === 'touch' || e.button === 0) {
+            onActivate(item.href)
+          }
+        } }
+        className="flex items-center justify-center w-full h-full"
+      >
         <div className="absolute bottom-[calc(100%+12px)] px-3 py-1.5 text-xs font-semibold text-foreground bg-popover/95 backdrop-blur-md border border-border/50 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 shadow-xl z-50 transform group-hover:-translate-y-1">
           {item.label}
         </div>
@@ -51,11 +73,35 @@ function DockIcon({ item, isActive, mouseX }: { item: any, isActive: boolean, mo
 }
 
 export function DockNav() {
+  const [optimisticPath, setOptimisticPath] = useState<string | null>(null)
   const mouseX = useMotionValue(Infinity)
   const pathname = usePathname()
+  const router = useRouter()
+
+  // Sync optimistic path with actual pathname
+  useEffect(() => {
+    setOptimisticPath(null)
+  }, [pathname])
 
   if (pathname === '/login' || pathname === '/') {
     return null;
+  }
+
+  const triggerHaptic = useCallback(() => {
+    if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(5) // Ultra-subtle haptic tap
+      } catch (e) {}
+    }
+  }, [])
+
+  const handleNavClick = (href: string) => {
+    setOptimisticPath(href)
+    triggerHaptic()
+  }
+
+  const handleMouseEnter = (href: string) => {
+    router.prefetch(href)
   }
 
   return (
@@ -66,8 +112,9 @@ export function DockNav() {
         className="flex items-end gap-3 px-3 py-2.5 bg-background/80 backdrop-blur-xl border border-border/50 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)]"
       >
         {dockItems.map((item) => {
-          const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/')
-          return <DockIcon key={item.href} item={item} isActive={isActive} mouseX={mouseX} />
+          const currentPath = optimisticPath || pathname
+          const isActive = currentPath === item.href || (currentPath.startsWith(item.href) && item.href !== '/dashboard' && item.href !== '/')
+          return <DockIcon key={item.href} item={item} isActive={isActive} mouseX={mouseX} onActivate={handleNavClick} router={router} />
         })}
       </motion.nav>
     </div>
