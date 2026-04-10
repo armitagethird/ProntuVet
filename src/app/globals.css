@@ -84,6 +84,7 @@
 :root {
   --background: oklch(0.99 0.01 250); 
   --foreground: oklch(0.2 0.02 245);
+  --grid-line: rgba(0, 0, 0, 0.06);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 245);
   --popover: oklch(1 0 0);
@@ -104,23 +105,24 @@
 }
 
 .dark {
-  --background: oklch(0.15 0.02 245);
+  --background: oklch(0.22 0.02 245);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.2 0.02 245);
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --card: oklch(0.26 0.02 245);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.2 0.02 245);
+  --popover: oklch(0.26 0.02 245);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.65 0.12 180);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.25 0.02 245);
+  --secondary: oklch(0.28 0.02 245);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.25 0.02 245);
+  --muted: oklch(0.28 0.02 245);
   --muted-foreground: oklch(0.7 0.02 245);
   --accent: oklch(0.3 0.1 220);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(0.25 0.02 245);
-  --input: oklch(0.25 0.02 245);
+  --border: oklch(0.3 0.02 245);
+  --input: oklch(0.3 0.02 245);
   --ring: oklch(0.65 0.12 180);
 }
 
@@ -179,7 +181,15 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Driver.js Premium Customization - Redimensionamento para o novo padrão */
+  /* Premium SaaS Background Grid (Dots Pattern) */
+  .bg-premium-grid {
+    background-image: radial-gradient(var(--grid-line) 1px, transparent 0);
+    background-size: 40px 40px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, #000 70%, transparent 100%);
+  }
+
+  /* Driver.js Premium Customization */
   .driver-popover {
     background-color: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(30px) !important;

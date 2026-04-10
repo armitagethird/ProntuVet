@@ -17,8 +17,12 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
   
   return (
     <>
-      <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem]">
-        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_800px_at_100%_200px,#0284c71a,transparent)]"></div>
+      <div className="absolute inset-0 -z-10 h-full w-full bg-background overflow-hidden">
+        {/* New Ultra-Minimalist Dot Pattern with Radial Masking */}
+        <div className="absolute inset-0 bg-premium-grid opacity-100" />
+        
+        {/* Soft Branding Glow */}
+        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_1000px_at_50%_-200px,var(--primary)/0.08,transparent)]" />
       </div>
       
       <main className="flex-1 flex flex-col min-h-screen">

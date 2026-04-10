@@ -88,10 +88,6 @@ export function DockNav() {
     setOptimisticPath(null)
   }, [pathname])
 
-  if (pathname === '/login' || pathname === '/' || pathname === '/auth') {
-    return null;
-  }
-
   const triggerHaptic = useCallback(() => {
     if (typeof window !== 'undefined' && 'navigator' in window && 'vibrate' in navigator) {
       try {
@@ -104,8 +100,13 @@ export function DockNav() {
     if (pathname === href) return
     setOptimisticPath(href)
     triggerHaptic()
-    // Explicitly navigate on touch to ensure instantaneous start
-    router.push(href)
+    // Next.js Link handles the actual navigation, 
+    // we just manage the optimistic UI state here.
+  }
+
+  // Moved conditional return here to comply with Rules of Hooks
+  if (pathname === '/login' || pathname === '/' || pathname === '/auth') {
+    return null;
   }
 
   return (

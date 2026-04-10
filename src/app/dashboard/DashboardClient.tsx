@@ -11,6 +11,8 @@ import {
   SelectValue 
 } from '@/components/ui/select'
 
+import { ThemeToggle } from '@/components/ui/theme-toggle'
+
 interface Template {
   id: string
   name: string
@@ -68,10 +70,13 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[75vh] px-4 animate-fade-in-up pb-24">
-      <div className="text-center mb-12">
+    <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[75vh] px-4 animate-fade-in-up pb-32">
+      <div className="text-center mb-8 flex flex-col items-center">
+        {/* Theme Switcher Placement */}
+        <ThemeToggle />
+
         {/* Styled Logo Signature */}
-        <div className="flex items-center justify-center gap-1 mb-6 group cursor-default select-none">
+        <div className="flex items-center justify-center gap-1 mb-4 group cursor-default select-none">
           <span className="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-teal-400 via-teal-500 to-emerald-600 tracking-tighter drop-shadow-sm">
             Prontu
           </span>
@@ -81,23 +86,23 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
           </span>
         </div>
 
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground/90 mb-4 px-4">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground/90 mb-2 px-4">
           Pronto para atender?
         </h1>
-        <p className="text-lg text-muted-foreground w-full max-w-xl mx-auto">
-          Olá, <span className="font-medium text-foreground">{userFirstName}</span>! Inicie uma nova consulta com o modelo selecionado abaixo.
+        <p className="text-base text-muted-foreground w-full max-w-xl mx-auto">
+          Olá, <span className="font-medium text-foreground">{userFirstName}</span>! Inicie uma nova consulta.
         </p>
       </div>
 
-      <div className="w-full max-w-md flex flex-col gap-8 transition-all duration-700 gpu-accelerated">
+      <div className="w-full max-w-md flex flex-col gap-4 transition-all duration-700">
         {/* Template Selector Card */}
-        <div id="template-selector" className="bg-card/30 backdrop-blur-sm md:backdrop-blur-xl border border-teal-500/10 rounded-[2rem] p-6 shadow-xl shadow-black/5 relative overflow-hidden group">
+        <div id="template-selector" className="bg-card/40 backdrop-blur-sm border border-teal-500/10 rounded-[2.5rem] p-5 shadow-xl shadow-black/5 relative overflow-hidden group">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent" />
-             <label className="text-[10px] font-bold text-teal-600/60 uppercase tracking-[0.2em] mb-3 block px-1">
-                 Modelo de Prontuário Selecionado
+             <label className="text-[9px] font-bold text-teal-600/60 uppercase tracking-[0.2em] mb-2 block px-1">
+                 Modelo de Prontuário
              </label>
              <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
-                <SelectTrigger className="w-full bg-background/40 border-teal-500/20 focus:ring-teal-500/30 rounded-2xl h-14 text-base font-medium shadow-sm transition-all hover:border-teal-500/40">
+                <SelectTrigger className="w-full bg-background/40 border-teal-500/20 focus:ring-teal-500/30 rounded-2xl h-12 text-sm font-medium shadow-sm transition-all hover:border-teal-500/40">
                     <SelectValue placeholder="Selecione um modelo">
                         {getSelectedName()}
                     </SelectValue>
@@ -116,21 +121,18 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </div>
 
         {/* Main Action Link */}
-        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-3xl gpu-accelerated">
-          <div className="relative overflow-hidden border border-teal-500/20 bg-card/60 backdrop-blur-sm md:backdrop-blur-xl rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.03] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-6">
+        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem]">
+          <div className="relative overflow-hidden border border-teal-500/20 bg-card/85 backdrop-blur-sm rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.02] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-4">
             {/* Hover Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
-            {/* Pulsing effect in background */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
-            <div className="relative bg-teal-500 bg-gradient-to-br from-teal-500 to-teal-600 text-white p-5 rounded-2xl shadow-xl shadow-teal-500/20 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 z-10">
-                <Dog className="w-10 h-10" />
+            <div className="relative bg-teal-500 bg-gradient-to-br from-teal-500 to-teal-600 text-white p-4 rounded-2xl shadow-xl shadow-teal-500/20 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 z-10">
+                <Dog className="w-8 h-8" />
             </div>
             
             <div className="relative z-10 transition-transform duration-500 group-hover:translate-y-[-2px]">
-              <h2 className="text-3xl font-bold tracking-tight mb-2 group-hover:text-teal-600 transition-colors">Iniciar Escuta</h2>
-              <p className="text-muted-foreground group-hover:text-foreground/80 transition-colors">Gerar prontuário com IA</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-1 group-hover:text-teal-600 transition-colors">Iniciar Escuta</h2>
+              <p className="text-sm text-muted-foreground group-hover:text-foreground/80 transition-colors">Gerar prontuário com IA</p>
             </div>
           </div>
         </Link>
