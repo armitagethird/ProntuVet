@@ -27,8 +27,8 @@ export default async function NewConsultationPage(props: { searchParams: Promise
     }
 
     return (
-        <div className="flex flex-col flex-1 max-w-4xl mx-auto w-full pt-12">
-            <div className="flex-1 flex flex-col justify-center animate-in fade-in slide-in-from-bottom-4 duration-700 gpu-accelerated">
+        <div className="flex flex-col flex-1 max-w-4xl mx-auto w-full pt-8">
+            <div className="flex-1 flex flex-col justify-start pt-4 animate-in fade-in slide-in-from-bottom-4 duration-700 gpu-accelerated">
                 <AudioRecorderClient templateId={templateId} templateName={templateName} />
             </div>
         </div>
