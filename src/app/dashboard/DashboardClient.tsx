@@ -68,12 +68,20 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[70vh] px-4 animate-fade-in-up pb-24">
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center p-4 bg-teal-500/10 rounded-full mb-6 ring-4 ring-teal-500/5 transition-transform hover:scale-110 duration-500">
-          <Activity className="w-10 h-10 text-teal-600" />
+    <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[75vh] px-4 animate-fade-in-up pb-24">
+      <div className="text-center mb-12">
+        {/* Styled Logo Signature */}
+        <div className="flex items-center justify-center gap-1 mb-6 group cursor-default select-none">
+          <span className="text-5xl md:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-br from-teal-400 via-teal-500 to-emerald-600 tracking-tighter drop-shadow-sm">
+            Prontu
+          </span>
+          <span className="text-5xl md:text-6xl font-black text-foreground tracking-tighter relative">
+            Vet
+            <div className="absolute top-1 -right-3 w-2.5 h-2.5 bg-teal-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(20,184,166,0.6)]" />
+          </span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4">
+
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground/90 mb-4 px-4">
           Pronto para atender?
         </h1>
         <p className="text-lg text-muted-foreground w-full max-w-xl mx-auto">
@@ -81,9 +89,9 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </p>
       </div>
 
-      <div className="w-full max-w-md flex flex-col gap-8 transition-all duration-700">
+      <div className="w-full max-w-md flex flex-col gap-8 transition-all duration-700 gpu-accelerated">
         {/* Template Selector Card */}
-        <div id="template-selector" className="bg-card/30 backdrop-blur-xl border border-teal-500/10 rounded-[2rem] p-6 shadow-xl shadow-black/5 relative overflow-hidden group">
+        <div id="template-selector" className="bg-card/30 backdrop-blur-sm md:backdrop-blur-xl border border-teal-500/10 rounded-[2rem] p-6 shadow-xl shadow-black/5 relative overflow-hidden group">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-teal-500/20 to-transparent" />
              <label className="text-[10px] font-bold text-teal-600/60 uppercase tracking-[0.2em] mb-3 block px-1">
                  Modelo de Prontuário Selecionado
@@ -108,8 +116,8 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </div>
 
         {/* Main Action Link */}
-        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-3xl">
-          <div className="relative overflow-hidden border border-teal-500/20 bg-card/60 backdrop-blur-xl rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.03] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-6">
+        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-3xl gpu-accelerated">
+          <div className="relative overflow-hidden border border-teal-500/20 bg-card/60 backdrop-blur-sm md:backdrop-blur-xl rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.03] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-6">
             {/* Hover Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             
