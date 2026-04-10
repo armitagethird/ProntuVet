@@ -217,9 +217,13 @@ export async function POST(req: NextRequest) {
         const message = error instanceof Error ? error.message : 'Erro ao processar sua consulta'
         console.error('API Error:', error)
         return NextResponse.json(
-            { error: 'Ocorreu um erro ao processar sua consulta. Por favor, tente novamente.' },
+            { 
+                error: 'Ocorreu um erro ao processar sua consulta.',
+                message: message // Enviamos a mensagem real para facilitar o debug pelo usuário
+            },
             { status: 500 }
         )
     }
 }
+
 

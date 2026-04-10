@@ -1,18 +1,28 @@
 import { GoogleGenerativeAI, GenerationConfig } from "@google/generative-ai";
 
-// Fail-fast: garante que a chave esteja configurada antes de qualquer chamada
-const API_KEY = process.env.GEMINI_API_KEY;
-if (!API_KEY) {
-    throw new Error(
-        '[Config] GEMINI_API_KEY não está configurada. ' +
-        'Defina-a no .env.local (desenvolvimento) e nas variáveis de ambiente do Vercel (produção).'
-    );
+// Helper para garantir a chave API e inicializar o cliente sob demanda
+function getGenAI() {
+    const API_KEY = process.env.GEMINI_API_KEY;
+    if (!API_KEY) {
+        throw new Error(
+            '[Config] GEMINI_API_KEY não está configurada. ' +
+            'Defina-a no .env.local (desenvolvimento) e nas variáveis de ambiente do Vercel (produção).'
+        );
+    }
+
+    if (API_KEY.startsWith('sk-')) {
+        throw new Error(
+            '[Config] A GEMINI_API_KEY configurada parece ser uma chave da OpenAI (prefixo sk-). ' +
+            'Por favor, use uma chave válida do Google Gemini (prefixo AIza) obtida no Google AI Studio.'
+        );
+    }
+
+    return new GoogleGenerativeAI(API_KEY);
 }
 
-const genAI = new GoogleGenerativeAI(API_KEY);
-
 // Modelo configurável via env para facilitar trocas sem alterar código
-const MODEL_NAME = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-lite";
+const MODEL_NAME = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
+
 
 /**
  * Extrai dados estruturados diretamente do áudio (Nativo Multimodal).
@@ -23,7 +33,7 @@ const MODEL_NAME = process.env.GEMINI_MODEL ?? "gemini-2.0-flash-lite";
  */
 export async function generateProntuario(audioBase64: string, mimeType: string, template: string): Promise<string> {
     try {
-        console.log(`[Gemini] Processando Áudio Multimodal (${mimeType})...`);
+        console.log(`[Gemini] Processando Áudio Multimodal com ${MODEL_NAME} (${mimeType})...`);
         
         // Configuração rídiga de sistema para evitar alucinações
         const systemInstruction = `Você é um assistente veterinário de elite.
@@ -55,10 +65,12 @@ Formate a saída como um único objeto JSON:
 }
 Retorne APENAS o JSON, sem explicações.`;
 
-        const model = genAI.getGenerativeModel({ 
+        const model = getGenAI().getGenerativeModel({ 
             model: MODEL_NAME,
             systemInstruction: systemInstruction 
         });
+
+
 
         const generationConfig: GenerationConfig = {
             temperature: 0.0,
@@ -113,10 +125,11 @@ Retorne APENAS o JSON:
 }
 `;
 
-        const model = genAI.getGenerativeModel({ 
+        const model = getGenAI().getGenerativeModel({ 
             model: MODEL_NAME,
             systemInstruction: systemInstruction 
         });
+
 
         const result = await model.generateContent(query);
         const response = await result.response;

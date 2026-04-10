@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion', 'sonner'],
     // ppr: 'incremental' isdeprecated in your version, let's use the new architecture
     // for high speed shells or disable if environment is unstable.
   },

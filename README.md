@@ -53,7 +53,7 @@ O ProntuVet foi submetido a uma auditoria técnica rigorosa para garantir a prot
 
 ### Backend & Inteligência
 - **Supabase** (PostgreSQL, Auth, Storage)
-- **Google Gemini 2.0 Flash-Lite** (IA multimodal nativa)
+- **Google Gemini 2.5 Flash-Lite** (IA multimodal nativa)
 - **Vercel** (Edge Computing)
 
 ---
@@ -85,8 +85,9 @@ graph TD
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    GEMINI_API_KEY=...
-   GEMINI_MODEL=gemini-2.0-flash-lite
+   GEMINI_MODEL=gemini-2.5-flash-lite
    ```
+
 
 3. **Inicie:**
    ```bash

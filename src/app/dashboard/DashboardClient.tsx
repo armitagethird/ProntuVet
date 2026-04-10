@@ -58,16 +58,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
 
 
 
-  // To avoid hydration mismatch while loading localStorage
-  if (!isLoaded) {
-    return (
-       <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[70vh] px-4 animate-pulse pb-24">
-            <div className="h-20 w-20 bg-muted rounded-full mb-6" />
-            <div className="h-8 w-64 bg-muted rounded mb-4" />
-            <div className="h-4 w-48 bg-muted rounded" />
-       </div>
-    )
-  }
+  // Removed isLoaded blocking skeleton to improve FCP/LCP drastically.
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto w-full h-full min-h-[75vh] px-4 animate-fade-in-up pb-32">
@@ -104,7 +95,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
              <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
                 <SelectTrigger className="w-full bg-background/40 border-teal-500/20 focus:ring-teal-500/30 rounded-2xl h-12 text-sm font-medium shadow-sm transition-all hover:border-teal-500/40">
                     <SelectValue placeholder="Selecione um modelo">
-                        {getSelectedName()}
+                        <span suppressHydrationWarning>{getSelectedName()}</span>
                     </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-teal-500/10 backdrop-blur-2xl p-2">
@@ -121,7 +112,7 @@ export function DashboardClient({ userFirstName, templates }: DashboardClientPro
         </div>
 
         {/* Main Action Link */}
-        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem]">
+        <Link id="start-listening" href={`/consultation/new?templateId=${selectedTemplateId}`} suppressHydrationWarning className="group focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem]">
           <div className="relative overflow-hidden border border-teal-500/20 bg-card/85 backdrop-blur-sm rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.02] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-4">
             {/* Hover Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

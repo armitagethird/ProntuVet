@@ -1,10 +1,12 @@
 import * as fs from 'fs';
-import { generateProntuario } from '../lib/gemini';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Carrega as variáveis de ambiente do .env.local
+// Carrega as variáveis de ambiente antes de qualquer coisa para evitar erros na inicialização do lib
 dotenv.config({ path: '.env.local' });
+
+import { generateProntuario } from '../lib/gemini';
+
 
 const DEFAULT_TEMPLATE = `
 - Motivo da Consulta (Queixa principal)

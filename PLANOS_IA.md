@@ -48,4 +48,5 @@ Saímos de uma arquitetura de 3 passos para uma extração atômica, visando **l
 - **Lógica**: `resetRecorder()` limpa o estado, zera o tempo e remove alertas de erro para nova tentativa.
 
 ---
-*Última atualização: 2026-04-06 | Versão IA: 4.0 (Atomic Multimodal)*
+*Última atualização: 2026-04-10 | Versão IA: 4.5 (Atomic Multimodal 2.5)*
+

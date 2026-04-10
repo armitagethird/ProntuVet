@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { DockNav } from "@/components/ui/dock-nav";
-import { Toaster } from "sonner";
+// removed direct import for Toaster
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import dynamic from "next/dynamic";
@@ -11,6 +11,7 @@ import dynamic from "next/dynamic";
 // Dynamically import heavy/non-critical components to reduce first-paint JS bundle
 const HelpCenter = dynamic(() => import("@/components/help-center").then(mod => mod.HelpCenter), { ssr: false });
 const OnboardingTour = dynamic(() => import("@/components/onboarding-tour").then(mod => mod.OnboardingTour), { ssr: false });
+const Toaster = dynamic(() => import("sonner").then(mod => mod.Toaster), { ssr: false });
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

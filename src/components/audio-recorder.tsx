@@ -260,8 +260,11 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}))
-                throw new Error(errorData.message || 'Falha ao processar o áudio com a IA')
+                // Tenta pegar 'message' (novo formato) ou 'error' (formato antigo)
+                const errorMessage = errorData.message || errorData.error || 'Falha ao processar o áudio com a IA'
+                throw new Error(errorMessage)
             }
+
 
             const result = await response.json()
             toast.success('Consulta estruturada com sucesso!')
