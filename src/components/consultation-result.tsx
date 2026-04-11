@@ -749,9 +749,29 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                                 style={{ animationDelay: `${(index % 10) * 50}ms` }}
                                             >
                                                 <div className="absolute top-4 bottom-4 left-0 w-1 bg-teal-500 rounded-r opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                                <h3 className="text-sm tracking-wider uppercase font-bold text-teal-600 dark:text-teal-500 mb-4 flex items-center gap-2">
-                                                    {key}
-                                                </h3>
+                                                <div className="flex items-start justify-between mb-4 gap-4">
+                                                    <h3 className="text-sm tracking-wider uppercase font-bold text-teal-600 dark:text-teal-500 mt-1">
+                                                        {key}
+                                                    </h3>
+                                                    {!isEditing && (
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="h-8 px-2 text-xs text-muted-foreground hover:text-teal-600 hover:bg-teal-500/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all gap-1.5 -mr-2"
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await navigator.clipboard.writeText(value);
+                                                                    toast.success('Texto copiado!');
+                                                                } catch(e) {
+                                                                    toast.error('Erro ao copiar');
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Copy className="h-3.5 w-3.5" />
+                                                            Copiar
+                                                        </Button>
+                                                    )}
+                                                </div>
 
                                                 {isEditing ? (
                                                     <Textarea
