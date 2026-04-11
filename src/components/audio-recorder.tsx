@@ -302,9 +302,9 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
     }
 
     return (
-        <div className="w-full flex flex-col items-center justify-start min-h-[80vh] pt-16 pb-40 px-4 animate-fade-in-up">
+        <div className="w-full flex flex-col items-center justify-start min-h-[80vh] pt-4 pb-40 px-4 animate-fade-in-up">
             <Card className="w-full max-w-lg overflow-hidden border-none bg-transparent shadow-none">
-                <CardContent className="flex flex-col items-center gap-10 py-6">
+                <CardContent className="flex flex-col items-center gap-6 py-2">
                     <div className="text-center space-y-4">
                         <motion.h1 
                             initial={{ scale: 0.9, opacity: 0 }}
