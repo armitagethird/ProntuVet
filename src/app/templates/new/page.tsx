@@ -87,13 +87,13 @@ export default function NewTemplatePage() {
                                 </CardDescription>
                             </div>
                             
-                            <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
-                                <Button type="button" variant="outline" className="rounded-full shadow-sm w-full md:w-auto" onClick={() => router.push('/dashboard')} disabled={isSaving}>
+                            <div className="grid grid-cols-2 sm:flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                                <Button type="button" variant="outline" className="rounded-full shadow-sm w-full" onClick={() => router.push('/dashboard')} disabled={isSaving}>
                                     Cancelar
                                 </Button>
-                                <Button type="submit" disabled={isSaving} className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 rounded-full transition-all duration-300 hover:scale-[1.02] w-full md:w-auto">
+                                <Button type="submit" disabled={isSaving} className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 rounded-full transition-all duration-300 hover:scale-[1.02] w-full">
                                     {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                                    Salvar Modelo
+                                    Salvar
                                 </Button>
                             </div>
                         </div>
