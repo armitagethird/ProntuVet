@@ -76,16 +76,30 @@ export default function NewTemplatePage() {
             <Card className="shadow-2xl border-teal-500/20 bg-background/80 backdrop-blur-xl animate-fade-in-up-delay-1">
                 <form onSubmit={handleSave}>
                     <CardHeader className="bg-gradient-to-b from-teal-500/5 to-transparent border-b border-border/40 pb-8">
-                        <div className="w-14 h-14 bg-gradient-to-br from-teal-400 to-blue-600 shadow-lg shadow-teal-500/30 rounded-2xl flex items-center justify-center mb-5 animate-float">
-                            <Dog className="w-7 h-7 text-white" />
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                            <div>
+                                <div className="w-14 h-14 bg-gradient-to-br from-teal-400 to-blue-600 shadow-lg shadow-teal-500/30 rounded-2xl flex items-center justify-center mb-5 animate-float">
+                                    <Dog className="w-7 h-7 text-white" />
+                                </div>
+                                <CardTitle className="text-3xl font-bold tracking-tight">Novo Modelo</CardTitle>
+                                <CardDescription className="text-base font-medium mt-1 pr-4">
+                                    Crie a estrutura exata que a inteligência artificial deve preencher após ouvir a consulta.
+                                </CardDescription>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 w-full md:w-auto mt-2 md:mt-0">
+                                <Button type="button" variant="outline" className="rounded-full shadow-sm w-full md:w-auto" onClick={() => router.push('/dashboard')} disabled={isSaving}>
+                                    Cancelar
+                                </Button>
+                                <Button type="submit" disabled={isSaving} className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 rounded-full transition-all duration-300 hover:scale-[1.02] w-full md:w-auto">
+                                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                                    Salvar Modelo
+                                </Button>
+                            </div>
                         </div>
-                        <CardTitle className="text-3xl font-bold tracking-tight">Novo Modelo de Prontuário</CardTitle>
-                        <CardDescription className="text-base font-medium">
-                            Crie a estrutura exata que a inteligência artificial deve preencher após ouvir a consulta.
-                        </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="space-y-8 pt-8 px-6 sm:px-8">
+                    <CardContent className="space-y-8 pt-8 px-6 sm:px-8 pb-8">
                         <div className="space-y-3">
                             <label htmlFor="name" className="text-sm font-semibold text-foreground tracking-tight">
                                 Nome do Modelo
@@ -114,21 +128,11 @@ export default function NewTemplatePage() {
                                 placeholder="Insira a sua estrutura desejada aqui..."
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                className="min-h-[400px] text-sm font-mono leading-relaxed bg-background/50 focus-visible:ring-teal-500 shadow-inner resize-y p-4"
+                                className="min-h-[220px] max-h-[400px] text-sm font-mono leading-relaxed bg-background/50 focus-visible:ring-teal-500 shadow-inner resize-y p-4"
                                 required
                             />
                         </div>
                     </CardContent>
-
-                    <CardFooter className="bg-muted/30 border-t border-border/40 py-5 px-6 sm:px-8 flex items-center justify-end gap-3">
-                        <Button type="button" variant="ghost" className="rounded-full hover:bg-muted/50" onClick={() => router.push('/dashboard')} disabled={isSaving}>
-                            Cancelar
-                        </Button>
-                        <Button type="submit" disabled={isSaving} className="bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 min-w-[140px] rounded-full transition-all duration-300 hover:scale-[1.02]">
-                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                            Salvar Modelo
-                        </Button>
-                    </CardFooter>
                 </form>
             </Card>
         </div>
