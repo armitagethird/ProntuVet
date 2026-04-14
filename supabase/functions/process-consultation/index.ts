@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Autenticação
+    // 1. Autenticação do Usuário
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
 
@@ -27,46 +27,82 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     if (authError || !user) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: corsHeaders })
 
-    // 2. Verificar Status do Perfil
-    const { data: profile } = await supabase.from('profiles').select('status').eq('id', user.id).single()
-    if (profile?.status === 'bloqueado' || profile?.status === 'cancelado') {
-      return new Response(JSON.stringify({ error: 'Assinatura inativa' }), { status: 403, headers: corsHeaders })
+    // 2. Buscar Perfil (Status e Plano)
+    const { data: profile } = await supabase.from('profiles').select('status, plano').eq('id', user.id).single()
+    
+    if (!profile || profile.status === 'bloqueado' || profile.status === 'cancelado') {
+      return new Response(JSON.stringify({ error: 'Sua assinatura está inativa ou bloqueada.' }), { status: 403, headers: corsHeaders })
     }
 
-    // 3. Verificar Limites (Mensal 200)
-    const inicioMes = new Date()
-    inicioMes.setUTCDate(1)
-    inicioMes.setUTCHours(0,0,0,0)
-    const { count: monthCount } = await supabase.from('uso_consultas').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('sucesso', true).gte('data_consulta', inicioMes.toISOString())
-    if ((monthCount ?? 0) >= 200) return new Response(JSON.stringify({ error: 'Limite mensal de 200 consultas atingido.' }), { status: 429, headers: corsHeaders })
+    const plano = profile.plano || 'free'
 
-    // 4. Rate Limit (30/h)
-    const umaHoraAtras = new Date(Date.now() - 60 * 60 * 1000)
-    const { count: hourCount } = await supabase.from('uso_consultas').select('*', { count: 'exact', head: true }).eq('user_id', user.id).gte('data_consulta', umaHoraAtras.toISOString())
-    if ((hourCount ?? 0) >= 30) return new Response(JSON.stringify({ error: 'Muitas requisições. Aguarde uma hora.' }), { status: 429, headers: corsHeaders })
+    // 3. Configuração de Limites por Plano
+    const limits = {
+      free: { monthly: 10, daily: 10, hourly: 5 },
+      platinum: { monthly: 200, daily: 20, hourly: 25 }
+    }[plano] || { monthly: 10, daily: 10, hourly: 5 }
 
-    // --- RECEBER DADOS ---
+    // 4. Verificação de Limites (Mês, Dia, Hora)
+    const now = new Date()
+    
+    // Mês atual
+    const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const { count: monthCount } = await supabase.from('uso_consultas').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('sucesso', true).gte('data_consulta', inicioMes)
+    
+    if ((monthCount || 0) >= limits.monthly) {
+      return new Response(JSON.stringify({ 
+        error: `Limite mensal de ${limits.monthly} consultas atingido para o plano ${plano}.`,
+        message: 'Fale com o suporte para upgrade.' 
+      }), { status: 429, headers: corsHeaders })
+    }
+
+    // Dia atual (Platinum apenas tem trava diária de 20)
+    const inicioDia = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    const { count: dayCount } = await supabase.from('uso_consultas').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).eq('sucesso', true).gte('data_consulta', inicioDia)
+
+    if ((dayCount || 0) >= limits.daily) {
+      return new Response(JSON.stringify({ 
+        error: `Limite diário de ${limits.daily} consultas atingido.`,
+        message: 'Aguarde até amanhã para novas consultas.' 
+      }), { status: 429, headers: corsHeaders })
+    }
+
+    // Hora atual (Rate Limit de Segurança)
+    const umaHoraAtras = new Date(now.getTime() - 60 * 60 * 1000).toISOString()
+    const { count: hourCount } = await supabase.from('uso_consultas').select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id).gte('data_consulta', umaHoraAtras)
+
+    if ((hourCount || 0) >= limits.hourly) {
+      return new Response(JSON.stringify({ 
+        error: 'Muitas consultas em pouco tempo.', 
+        message: 'Aguarde alguns minutos.' 
+      }), { status: 429, headers: corsHeaders })
+    }
+
+    // --- PROCESSAR DADOS ---
     const formData = await req.formData()
     const audioFile = formData.get('audio') as File
     const templateId = formData.get('templateId') as string
     const duracaoAudio = parseInt(formData.get('duracaoSeconds') as string || '0')
 
-    if (!audioFile || !templateId) throw new Error("Dados incompletos.")
+    if (!audioFile || !templateId) throw new Error("Dados de consulta incompletos.")
 
-    // --- BUSCAR TEMPLATE (SEGURANÇA: Server-side check) ---
+    // Buscar Template
     let templateContent = ""
     if (templateId === 'system-default') {
         templateContent = "Motivo da Consulta, Anamnese, Exame Físico, Suspeita Diagnóstica, Exames Solicitados, Tratamento, Orientações ao Tutor"
     } else {
         const { data: template } = await supabase.from('consultation_templates').select('content').eq('id', templateId).single()
-        if (!template) throw new Error("Modelo não encontrado.")
+        if (!template) throw new Error("Modelo de prontuário não encontrado.")
         templateContent = template.content
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey)
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash-lite",
-        systemInstruction: "Você é um assistente veterinário de elite. O áudio contém uma consulta. Extraia os dados em JSON estruturado seguindo o modelo fornecido. Mantenha fidelidade total ao que foi dito. Se houver silêncio, retorne erro."
+        systemInstruction: "Você é um assistente veterinário de elite. O áudio contém uma consulta. Extraia os dados em JSON estruturado seguindo o modelo fornecido. Mantenha fidelidade ao que foi dito."
     })
 
     const arrayBuffer = await audioFile.arrayBuffer()
@@ -75,7 +111,7 @@ Deno.serve(async (req) => {
     try {
       const result = await model.generateContent([
         { inlineData: { data: audioBase64, mimeType: audioFile.type || 'audio/webm' } },
-        { text: `Gere o prontuário em JSON baseado neste modelo de chaves:\n${templateContent}\n\nRetorne o JSON completo com animal_name, animal_species, tutor_name, tutor_summary, vet_summary, resumo_trilha, transcription, tags e o objeto 'prontuario'.` }
+        { text: `Gere o prontuário em JSON baseado neste modelo:\n${templateContent}\n\nRetorne o JSON completo com animal_name, animal_species, tutor_name, tutor_summary, vet_summary, resumo_trilha, transcription, tags e o objeto 'prontuario'.` }
       ])
       
       const response = await result.response
@@ -83,7 +119,7 @@ Deno.serve(async (req) => {
       const tokensInput = response.usageMetadata?.promptTokenCount ?? 0
       const tokensOutput = response.usageMetadata?.candidatesTokenCount ?? 0
 
-      // Log de Sucesso
+      // Registrar Uso
       await supabase.from('uso_consultas').insert({
         user_id: user.id,
         duracao_audio_segundos: duracaoAudio,
@@ -94,12 +130,9 @@ Deno.serve(async (req) => {
         sucesso: true
       })
 
-      // Parse JSON
       const geminiData = JSON.parse(resultText.replace(/```json|```/g, ''))
       
-      if (geminiData.error) throw new Error(geminiData.error)
-
-      // Gerenciar Animal
+      // Gerenciar Animal e Salvar Consulta (Lógica simplificada para a Edge Function)
       let animalId = null
       if (geminiData.animal_name) {
         const { data: existing } = await supabase.from('animals').select('id').eq('user_id', user.id).ilike('name', geminiData.animal_name).maybeSingle()
@@ -111,7 +144,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Salvar Consulta
       const { data: consultation, error: consError } = await supabase.from('consultations').insert({
         user_id: user.id,
         title: geminiData.animal_name ? `Consulta: ${geminiData.animal_name}` : 'Consulta Veterinária',
