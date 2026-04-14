@@ -7,6 +7,7 @@ import { Mic, Square, Loader2, AlertCircle, Pause, Play, ChevronLeft, CheckCircl
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createClient } from '@/lib/supabase/client'
 
 interface AudioRecorderProps {
     templateId: string
@@ -249,24 +250,35 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
 
     const processAudio = async (audioBlob: Blob) => {
         try {
+            const supabase = createClient()
+            const { data: { session } } = await supabase.auth.getSession()
+
+            if (!session) {
+                throw new Error('Sessão expirada. Por favor, faça login novamente.')
+            }
+
             const formData = new FormData()
             formData.append('audio', audioBlob, 'consultation.webm')
             formData.append('templateId', templateId)
+            formData.append('duracaoSeconds', recordingTime.toString())
 
-            const response = await fetch('/api/process-consultation', {
+            const edgeFunctionUrl = 'https://wfiolpylleatfxiznxmc.supabase.co/functions/v1/process-consultation'
+
+            const response = await fetch(edgeFunctionUrl, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
                 body: formData,
             })
 
+            const result = await response.json()
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}))
-                // Tenta pegar 'message' (novo formato) ou 'error' (formato antigo)
-                const errorMessage = errorData.message || errorData.error || 'Falha ao processar o áudio com a IA'
+                const errorMessage = result.error || result.message || 'Falha ao processar consulta'
                 throw new Error(errorMessage)
             }
 
-
-            const result = await response.json()
             toast.success('Consulta estruturada com sucesso!')
             router.push(`/consultation/${result.consultationId}`)
         } catch (error: any) {

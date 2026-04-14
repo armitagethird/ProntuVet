@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { createClient } from '@/lib/supabase/client'
 
 export function OnboardingTour() {
   const supabase = createClient()
+  const pathname = usePathname()
   const driverRef = useRef<any>(null)
   const isRunning = useRef(false)
 
@@ -18,9 +20,10 @@ export function OnboardingTour() {
     const driverObj = driver({
       showProgress: true,
       animate: true,
-      overlayColor: 'rgba(0, 0, 0, 0.7)',
+      overlayColor: 'rgba(15, 23, 42, 0.75)',
+      popoverClass: 'driverjs-theme', // Activate our premium CSS theme
       stagePadding: 12,
-      popoverOffset: 45,
+      popoverOffset: 25,
       onDestroyed: async () => {
         isRunning.current = false
         // Persist completion in user metadata
@@ -28,14 +31,14 @@ export function OnboardingTour() {
           data: { has_seen_tutorial: true }
         })
       },
-      nextBtnText: 'Próximo',
-      prevBtnText: 'Anterior',
-      doneBtnText: 'Entendi!',
+      nextBtnText: 'Continuar ➔',
+      prevBtnText: 'Voltar',
+      doneBtnText: 'Vamos Começar!',
       steps: [
         {
           popover: {
             title: '🐾 Bem-vindo ao ProntuVet!',
-            description: 'Olá! Sou seu assistente de IA. Vou te mostrar como transformar suas consultas em prontuários perfeitos em segundos. Vamos lá?',
+            description: 'Sua rotina clínica acaba de ganhar um superpoder. Vamos te mostrar como a IA vai trabalhar por você hoje.',
             side: "bottom",
             align: 'start'
           }
@@ -43,8 +46,8 @@ export function OnboardingTour() {
         {
           element: '#template-selector',
           popover: {
-            title: '📋 Escolha sua Ferramenta',
-            description: 'Aqui você seleciona qual "esqueleto" de prontuário quer usar. Pode ser o padrão ou um que você mesmo criou para casos específicos.',
+            title: '📋 Inteligência Estruturada',
+            description: 'Escolha o modelo ideal para cada caso. A IA usará essa estrutura para organizar seus pensamentos automaticamente.',
             side: "bottom",
             align: 'start'
           }
@@ -52,8 +55,8 @@ export function OnboardingTour() {
         {
           element: '#start-listening',
           popover: {
-            title: '🎙️ O Grande Momento',
-            description: 'Quando o paciente entrar, clique aqui! A IA vai ouvir tudo e estruturar o prontuário para você. É quase mágica!',
+            title: '🎙️ Sua Voz vira Prontuário',
+            description: 'O coração do app! Clique para iniciar a escuta. Fale naturalmente com o tutor enquanto a IA cuida de toda a documentação.',
             side: "top",
             align: 'center'
           }
@@ -61,8 +64,8 @@ export function OnboardingTour() {
         {
           element: '#nav-history',
           popover: {
-            title: '📂 Memória de Elefante',
-            description: 'Aqui ficam guardadas todas as suas consultas passadas. Histórico completo na palma da mão.',
+            title: '📂 Memória Clínica Infinita',
+            description: 'Aqui você acessa o histórico completo de todos os seus atendimentos anteriores em segundos.',
             side: "top",
             align: 'center'
           }
@@ -70,16 +73,16 @@ export function OnboardingTour() {
         {
           element: '#nav-templates',
           popover: {
-            title: '🛠️ Suas Regras',
-            description: 'Quer que o prontuário tenha uma seção de "Banho e Tosa" ou "Exames de Imagem"? Crie seus próprios modelos aqui!',
+            title: '🛠️ Customize sua Prática',
+            description: 'Crie novos campos ou modelos exclusivos para sua especialidade. O ProntuVet se adapta ao seu jeito de trabalhar.',
             side: "top",
             align: 'end'
           }
         },
         {
           popover: {
-            title: '✨ Tudo Pronto!',
-            description: 'Agora você já sabe o básico. Qualquer dúvida, é só clicar no botão de ajuda que preparei para você ali no cantinho!',
+            title: '✨ Você está pronto!',
+            description: 'O ProntuVet é intuitivo, mas sempre que precisar, nosso Centro de Ajuda está disponível no menu de perfil.',
             side: "bottom",
             align: 'center'
           }
@@ -92,29 +95,59 @@ export function OnboardingTour() {
   }
 
   useEffect(() => {
-    // 1. Listen for auth state changes (login, registration, etc)
+    // 1. Path Guard: Only trigger automatic logic on the Dashboard
+    if (pathname !== '/dashboard') {
+      console.log("OnboardingTour: Path is not /dashboard, skipping. Current:", pathname)
+      return
+    }
+
+    const checkAndStartTour = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // If user exists and hasn't seen the tutorial (or metadata is not set yet)
+      const hasSeen = user?.user_metadata?.has_seen_tutorial
+      
+      console.log("OnboardingTour: Checking user state...", { hasSeen, userId: user?.id })
+
+      if (user && !hasSeen) {
+        // Wait for elements to be stable in the DOM
+        let attempts = 0
+        const interval = setInterval(() => {
+          const target = document.querySelector('#template-selector')
+          if (target) {
+            console.log("OnboardingTour: Target element found, launching tour.")
+            clearInterval(interval)
+            startTour()
+          }
+          if (attempts > 12) { // 6 seconds timeout
+            console.warn("OnboardingTour: Target element #template-selector not found after 6s")
+            clearInterval(interval) 
+          }
+          attempts++
+        }, 500)
+      }
+    }
+
+    // 2. Immediate check on mount or when pathname changes to /dashboard
+    checkAndStartTour()
+
+    // 3. Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("OnboardingTour: Auth Event:", event)
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        const user = session?.user
-        if (user && !user.user_metadata?.has_seen_tutorial) {
-          // Delay to ensure components are fully rendered after login transition
-          setTimeout(startTour, 2000)
-        }
+        checkAndStartTour()
       }
     })
 
-    // 2. Listen for custom restart event from Help Center
-    const handleRestart = () => {
-      startTour()
-    }
-
+    // 4. Custom restart event
+    const handleRestart = () => startTour()
     window.addEventListener('restart-onboarding', handleRestart)
     
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('restart-onboarding', handleRestart)
     }
-  }, [supabase])
+  }, [supabase, pathname]) // Added pathname as dependency
 
   return null
 }

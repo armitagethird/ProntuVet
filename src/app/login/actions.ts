@@ -37,6 +37,18 @@ export async function signup(formData: FormData) {
     const rawCpf = formData.get('cpf') as string
     const cpf = rawCpf.replace(/\D/g, '') // Normalize: keep only digits
 
+    // 1. Proactive CPF Check (Best Practice: check before trigger fails)
+    const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('cpf', cpf)
+        .single()
+
+    if (existingProfile) {
+        redirect(`/login?error=${encodeURIComponent('Este CPF já está cadastrado em outra conta. Por favor, recupere sua senha ou use outro CPF.')}`)
+    }
+
+    // 2. Attempt Signup
     const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -53,7 +65,18 @@ export async function signup(formData: FormData) {
 
     if (error) {
         console.error("Signup Supabase Error:", error)
-        redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        
+        // Translate common Supabase Auth errors
+        let friendlyMessage = error.message
+        if (error.message.includes('User already registered')) {
+            friendlyMessage = 'Este e-mail já está cadastrado. Tente fazer login ou recuperar sua senha.'
+        } else if (error.message.includes('Password should be')) {
+            friendlyMessage = 'A senha deve ter pelo menos 6 caracteres.'
+        } else if (error.message.includes('Database error saving new user')) {
+            friendlyMessage = 'Ocorreu um erro ao salvar seus dados. Verifique se o CPF ou E-mail já estão em uso.'
+        }
+
+        redirect(`/login?error=${encodeURIComponent(friendlyMessage)}`)
     }
 
     revalidatePath('/', 'layout')

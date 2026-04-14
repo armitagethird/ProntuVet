@@ -106,7 +106,10 @@ export function DockNav() {
   }
 
   // Moved conditional return here to comply with Rules of Hooks
-  if (pathname === '/login' || pathname === '/' || pathname === '/auth') {
+  // Robust check: hides dock on Landing, Login, and any Auth sub-route
+  const isAuthPath = pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/auth')
+  
+  if (isAuthPath) {
     return null;
   }
 

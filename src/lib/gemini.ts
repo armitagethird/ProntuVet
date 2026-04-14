@@ -29,9 +29,13 @@ const MODEL_NAME = process.env.GEMINI_MODEL ?? "gemini-2.5-flash-lite";
  * @param audioBase64 O conteúdo do áudio em base64.
  * @param mimeType O tipo mime do áudio.
  * @param template A estrutura de chaves desejada.
- * @returns O JSON estruturado do prontuário ou um objeto com erro.
+ * @returns O JSON estruturado do prontuário e metadados de tokens.
  */
-export async function generateProntuario(audioBase64: string, mimeType: string, template: string): Promise<string> {
+export async function generateProntuario(
+    audioBase64: string, 
+    mimeType: string, 
+    template: string
+): Promise<{ text: string, usageMetadata?: { promptTokenCount: number, candidatesTokenCount: number } }> {
     try {
         console.log(`[Gemini] Processando Áudio Multimodal com ${MODEL_NAME} (${mimeType})...`);
         
@@ -76,8 +80,6 @@ Retorne APENAS o JSON válido.`;
             systemInstruction: systemInstruction 
         });
 
-
-
         const generationConfig: GenerationConfig = {
             temperature: 0.0,
             responseMimeType: "application/json",
@@ -95,7 +97,14 @@ Retorne APENAS o JSON válido.`;
         });
 
         const response = await result.response;
-        return response.text();
+        
+        return {
+            text: response.text(),
+            usageMetadata: {
+                promptTokenCount: response.usageMetadata?.promptTokenCount ?? 0,
+                candidatesTokenCount: response.usageMetadata?.candidatesTokenCount ?? 0
+            }
+        };
     } catch (error: unknown) {
         const message = error instanceof Error ? error.message : 'Erro desconhecido'
         console.error("[Gemini] Erro no processamento multimodal:", error);
@@ -106,9 +115,11 @@ Retorne APENAS o JSON válido.`;
 /**
  * Analisa uma query de busca em linguagem natural e a traduz para filtros estruturados.
  * @param query A busca do usuário (ex: "Rex em março", "cirurgias do ano passado")
- * @returns Um objeto JSON com filtros para o Supabase.
+ * @returns Um objeto JSON com filtros para o Supabase e metadados.
  */
-export async function analyzeHistoryQuery(query: string): Promise<string> {
+export async function analyzeHistoryQuery(
+    query: string
+): Promise<{ text: string, usageMetadata?: { promptTokenCount: number, candidatesTokenCount: number } }> {
     const now = new Date().toISOString();
     try {
         const systemInstruction = `Você é um tradutor de buscas clínicas. 
@@ -139,9 +150,19 @@ Retorne APENAS o JSON:
 
         const result = await model.generateContent(query);
         const response = await result.response;
-        return response.text();
+        
+        return {
+            text: response.text(),
+            usageMetadata: {
+                promptTokenCount: response.usageMetadata?.promptTokenCount ?? 0,
+                candidatesTokenCount: response.usageMetadata?.candidatesTokenCount ?? 0
+            }
+        };
     } catch (error: unknown) {
         console.error("[Gemini] Erro na análise de busca:", error);
-        return JSON.stringify({ animal: query, tutor: null, startDate: null, endDate: null, keywords: query });
+        return { 
+            text: JSON.stringify({ animal: query, tutor: null, startDate: null, endDate: null, keywords: query }),
+            usageMetadata: { promptTokenCount: 0, candidatesTokenCount: 0 }
+        };
     }
 }
