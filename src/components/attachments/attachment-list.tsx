@@ -50,17 +50,14 @@ export function AttachmentList({ consultaId, refreshKey }: { consultaId: string,
         fetchAttachments()
     }, [consultaId, refreshKey, supabase])
 
-    const getSignedUrlAndOpen = async (path: string, isImage = false) => {
-        const { data, error } = await supabase.storage.from('medical-attachments').createSignedUrl(path, 3600)
-        if (error) {
-            toast.error('Erro ao abrir arquivo.')
-            return
-        }
+    const getUrlAndOpen = (path: string, isImage = false) => {
+        const { data } = supabase.storage.from('medical-attachments').getPublicUrl(path)
+        const timestamp = Date.now()
         
         if (isImage) {
-            setSelectedImage(data.signedUrl)
+            setSelectedImage(`${data.publicUrl}?t=${timestamp}`)
         } else {
-            window.open(data.signedUrl, '_blank')
+            window.open(`${data.publicUrl}?t=${timestamp}`, '_blank')
         }
     }
 
@@ -104,16 +101,20 @@ export function AttachmentList({ consultaId, refreshKey }: { consultaId: string,
                 <div key={file.id} className="group relative bg-card border border-border/50 rounded-2xl overflow-hidden hover:border-teal-500/30 transition-all">
                     {/* Thumbnail View */}
                     <div 
-                        onClick={() => getSignedUrlAndOpen(file.storage_path, file.tipo === 'imagem')}
-                        className="aspect-square flex flex-col items-center justify-center p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                        onClick={() => getUrlAndOpen(file.storage_path, file.tipo === 'imagem')}
+                        className="aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-muted/30 transition-colors relative overflow-hidden group/img"
                     >
                         {file.tipo === 'imagem' ? (
-                            <div className="flex flex-col items-center gap-2">
-                                <div className="p-3 rounded-full bg-teal-500/10 text-teal-600">
-                                    <ImageIcon className="w-5 h-5" />
+                            <>
+                                <img 
+                                    src={`${supabase.storage.from('medical-attachments').getPublicUrl(file.storage_path).data.publicUrl}?t=${Date.now()}`} 
+                                    alt={file.nome_arquivo}
+                                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Maximize2 className="w-6 h-6 text-white" />
                                 </div>
-                                <span className="text-[10px] font-bold text-teal-600">IMAGEM CLÍNICA</span>
-                            </div>
+                            </>
                         ) : (
                             <div className="flex flex-col items-center gap-2">
                                 <div className="p-3 rounded-full bg-blue-500/10 text-blue-600">
@@ -122,9 +123,11 @@ export function AttachmentList({ consultaId, refreshKey }: { consultaId: string,
                                 <span className="text-[10px] font-bold text-blue-600 uppercase">LAUDO PDF</span>
                             </div>
                         )}
-                        <p className="text-[10px] text-muted-foreground mt-3 text-center line-clamp-1 px-2">
-                            {file.nome_arquivo}
-                        </p>
+                        {file.tipo !== 'imagem' && (
+                            <p className="text-[10px] text-muted-foreground mt-3 text-center line-clamp-1 px-2">
+                                {file.nome_arquivo}
+                            </p>
+                        )}
                     </div>
 
                     {/* Actions Overlay */}
@@ -143,7 +146,7 @@ export function AttachmentList({ consultaId, refreshKey }: { consultaId: string,
 
             {/* Image Preview Modal */}
             <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-                <DialogContent className="max-w-4xl p-0 overflow-hidden bg-transparent border-none shadow-none text-white">
+                <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none text-white">
                     <DialogHeader className="p-4 bg-muted/80 backdrop-blur-md flex-row justify-between items-center rounded-t-3xl">
                         <DialogTitle className="text-foreground">Visualização Clínica</DialogTitle>
                         <Button variant="ghost" size="icon" onClick={() => setSelectedImage(null)} className="text-foreground rounded-full h-8 w-8">

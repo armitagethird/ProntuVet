@@ -11,13 +11,18 @@ import Image from 'next/image'
 import { Progress } from '@/components/ui/progress'
 import Link from 'next/link'
 
-export default function ClientProfile({ initialUser, onLogout }: { initialUser: any, onLogout: () => void }) {
+export default function ClientProfile({ initialUser, plano, onLogout }: { initialUser: any, plano: string, onLogout: () => void }) {
     const supabase = createClient()
     const [userMeta, setUserMeta] = useState(initialUser.user_metadata || {})
     const [pets, setPets] = useState<{name: string, kind: string}[]>(initialUser.user_metadata?.my_pets || [])
     const [newPetName, setNewPetName] = useState('')
     const [newPetKind, setNewPetKind] = useState('')
     const [usage, setUsage] = useState({ daily: 0, monthly: 0, loading: true })
+
+    const limits = {
+        free: { daily: 10, monthly: 10 },
+        platinum: { daily: 20, monthly: 200 }
+    }[plano] || { daily: 10, monthly: 10 };
 
     useEffect(() => {
         const fetchUsage = async () => {
@@ -279,9 +284,15 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             <BarChart3 className="w-6 h-6 text-teal-500" /> Uso do Plano de IA
                         </h2>
-                        <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-slate-200 via-white to-slate-200 text-slate-700 rounded-full text-sm font-black border border-slate-300/50 shadow-sm shadow-slate-400/10 uppercase tracking-widest">
-                            <Zap className="w-4 h-4 fill-current text-slate-400" /> Plano Platinum
-                        </div>
+                        {plano === 'platinum' ? (
+                            <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-slate-200 via-white to-slate-200 text-slate-700 rounded-full text-sm font-black border border-slate-300/50 shadow-sm shadow-slate-400/10 uppercase tracking-widest">
+                                <Zap className="w-4 h-4 fill-current text-slate-400" /> Plano Platinum
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-teal-500/10 to-teal-500/5 text-teal-600 rounded-full text-sm font-black border border-teal-500/20 shadow-sm uppercase tracking-widest">
+                                <Shield className="w-4 h-4 fill-current text-teal-500/50" /> Plano Free
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
@@ -291,10 +302,10 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                                     <Clock className="w-5 h-5 text-purple-500" />
                                     <span className="font-semibold">Limite Diário</span>
                                 </div>
-                                <span className="text-sm font-bold">{usage.daily} / 20</span>
+                                <span className="text-sm font-bold">{usage.daily} / {limits.daily}</span>
                             </div>
-                            <Progress value={(usage.daily / 20) * 100} className="h-3 bg-muted/50" color="purple" />
-                            <p className="text-xs text-muted-foreground">O limite diário é resetado à meia-noite (UTC) para proteção da conta.</p>
+                            <Progress value={Math.min((usage.daily / limits.daily) * 100, 100)} className="h-3 bg-muted/50" color="purple" />
+                            <p className="text-xs text-muted-foreground">O limite diário é resetado à meia-noite (UTC-3) para proteção da conta.</p>
                         </div>
 
                         <div className="space-y-4 p-6 bg-background/40 border border-border/40 rounded-2xl">
@@ -303,10 +314,10 @@ export default function ClientProfile({ initialUser, onLogout }: { initialUser: 
                                     <Zap className="w-5 h-5 text-teal-500" />
                                     <span className="font-semibold">Limite Mensal</span>
                                 </div>
-                                <span className="text-sm font-bold">{usage.monthly} / 200</span>
+                                <span className="text-sm font-bold">{usage.monthly} / {limits.monthly}</span>
                             </div>
-                            <Progress value={(usage.monthly / 200) * 100} className="h-3 bg-muted/50" />
-                            <p className="text-xs text-muted-foreground">Gravações limitadas a 10 minutos por consulta no plano Platinum.</p>
+                            <Progress value={Math.min((usage.monthly / limits.monthly) * 100, 100)} className="h-3 bg-muted/50" />
+                            <p className="text-xs text-muted-foreground">O uso de IA é contabilizado em até 10 minutos por consulta.</p>
                         </div>
                     </div>
 

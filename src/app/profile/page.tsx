@@ -25,5 +25,8 @@ async function ProfileFetcher() {
 
     if (!user) return null
 
-    return <ClientProfile initialUser={user} onLogout={logout} />
+    const { data: profile } = await supabase.from('profiles').select('plano').eq('id', user.id).single()
+    const plano = profile?.plano || 'free'
+
+    return <ClientProfile initialUser={user} plano={plano} onLogout={logout} />
 }

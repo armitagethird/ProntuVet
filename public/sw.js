@@ -37,8 +37,8 @@ self.addEventListener('fetch', (event) => {
   // Network-first strategy for main data, Cache-first for static assets
   const url = new URL(event.request.url);
   
-  if (url.pathname.startsWith('/api') || url.pathname.includes('/auth')) {
-    // API and Auth should always hit network
+  if (url.pathname.startsWith('/api') || url.pathname.includes('/auth') || url.hostname.includes('supabase.co')) {
+    // API, Auth e URLs do Supabase (Imagens) devem sempre passar direto pela internet
     return;
   }
 
