@@ -1,14 +1,69 @@
+"use client"
+
+import React, { useState } from 'react'
 import { login } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { SignupForm } from '@/components/auth/signup-form'
-import { PawPrint, Brain, Clock, Shield, Sparkles, Heart } from 'lucide-react'
+import { PawPrint, Brain, Clock, Shield, Sparkles, Heart, X } from 'lucide-react'
 import Image from 'next/image'
+import { motion, AnimatePresence } from 'framer-motion'
 
-export default async function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
-    const searchParams = await props.searchParams;
+interface CardData {
+    id: string;
+    title: string;
+    description: string;
+    longDescription: string;
+    icon: any;
+    color: string;
+    accentColor: string;
+}
+
+const cards: CardData[] = [
+    {
+        id: 'scribe',
+        title: 'IA Scribe',
+        description: 'Transcreve e resume suas consultas em segundos.',
+        longDescription: 'Nossa IA exclusiva ouve e processa os termos técnicos veterinários, diferenciando espécies e procedimentos, gerando um prontuário estruturado em segundos. Isso permite que você mantenha o contato visual com seu paciente e tutor durante todo o atendimento.',
+        icon: Brain,
+        color: 'bg-sky-500/20',
+        accentColor: 'text-sky-300'
+    },
+    {
+        id: 'performance',
+        title: '70% Mais Rápido',
+        description: 'Reduza drasticamente o tempo de documentação.',
+        longDescription: 'Economize em média 15 minutos por atendimento. No final de um dia com 10 consultas, você ganha 2,5 horas livres para descansar, estudar ou atender mais casos, aumentando seu faturamento sem aumentar o estresse.',
+        icon: Clock,
+        color: 'bg-green-500/20',
+        accentColor: 'text-green-300'
+    },
+    {
+        id: 'security',
+        title: 'Criptografado',
+        description: 'Todos os dados dos seus pacientes estão protegidos.',
+        longDescription: 'Segurança de nível bancário com criptografia de ponta a ponta. Seguimos rigorosamente as normas de proteção de dados sensíveis, garantindo que o histórico clínico e as informações dos tutores estejam sempre protegidos contra acessos não autorizados.',
+        icon: Shield,
+        color: 'bg-amber-500/20',
+        accentColor: 'text-amber-300'
+    },
+    {
+        id: 'care',
+        title: 'Humanizado',
+        description: 'Liberdade para focar mais no que realmente importa.',
+        longDescription: 'Recupere o prazer de exercer a medicina veterinária de excelência. Ao eliminar a carga burocrática, você reduz o risco de burnout e melhora a qualidade do seu diagnóstico, oferecendo uma experiência mais humana e dedicada ao animal.',
+        icon: Heart,
+        color: 'bg-rose-500/20',
+        accentColor: 'text-rose-300'
+    }
+];
+
+export default function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
+    const searchParams = React.use(props.searchParams);
+    const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
+
     return (
         <div className="flex flex-col lg:flex-row min-h-screen w-full bg-background overflow-x-hidden">
             {/* Seção Esquerda / Superior : Formulário */}
@@ -108,7 +163,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
                 </div>
             </div>
 
-            {/* Seção Direita / Inferior : Informações da Aplicação */}
+            {/* Seção Direita : Informações da Aplicação */}
             <div className="flex flex-col w-full lg:w-1/2 relative bg-sky-950 overflow-hidden items-center justify-center p-8 sm:p-12 lg:p-20 min-h-[700px] lg:min-h-screen">
                 {/* Background com padrão sutil e gradientes */}
                 <div className="absolute inset-0 z-0">
@@ -126,10 +181,6 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
                 
                 <div className="relative z-10 max-w-2xl w-full text-white space-y-10 animate-in fade-in slide-in-from-bottom-12 duration-1000">
                     <div className="space-y-4 text-center lg:text-left pt-12 lg:pt-0">
-                        <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm font-semibold backdrop-blur-md shadow-inner">
-                            <Sparkles className="mr-2 h-4 w-4 text-sky-300" /> 
-                            Líder em IA para Veterinária
-                        </div>
                         <h2 className="text-3xl sm:text-4xl xl:text-5xl font-black tracking-tight leading-[1.1]">
                             Foco total na <span className="text-sky-400">saúde animal</span>,<br className="hidden sm:block" />
                             com menos papelada.
@@ -141,56 +192,116 @@ export default async function LoginPage(props: { searchParams: Promise<{ error?:
                     
                     {/* Grid de Cards Informativos */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Card 1: IA Scribe */}
-                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
-                            <div className="h-10 w-10 rounded-2xl bg-sky-500/20 flex items-center justify-center mb-4 border border-sky-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
-                                <Brain className="h-5 w-5 text-sky-300" />
-                            </div>
-                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">IA Scribe</h3>
-                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Transcreve e resume suas consultas em segundos.</p>
-                        </div>
-
-                        {/* Card 2: Performance */}
-                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
-                            <div className="h-10 w-10 rounded-2xl bg-green-500/20 flex items-center justify-center mb-4 border border-green-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
-                                <Clock className="h-5 w-5 text-green-300" />
-                            </div>
-                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">70% Mais Rápido</h3>
-                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Reduza drasticamente o tempo de documentação.</p>
-                        </div>
-
-                        {/* Card 3: Segurança */}
-                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
-                            <div className="h-10 w-10 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-4 border border-amber-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
-                                <Shield className="h-5 w-5 text-amber-300" />
-                            </div>
-                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">Criptografado</h3>
-                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Todos os dados dos seus pacientes estão protegidos.</p>
-                        </div>
-
-                        {/* Card 4: Cuidado */}
-                        <div className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all hover:bg-white/10 hover:border-white/20 hover:-translate-y-1">
-                            <div className="h-10 w-10 rounded-2xl bg-rose-500/20 flex items-center justify-center mb-4 border border-rose-400/30 group-hover:scale-110 transition-transform mx-auto lg:mx-0">
-                                <Heart className="h-5 w-5 text-rose-300" />
-                            </div>
-                            <h3 className="font-bold text-center lg:text-left text-lg mb-1">Humanizado</h3>
-                            <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">Liberdade para focar mais no que realmente importa.</p>
-                        </div>
+                        {cards.map((card) => (
+                            <motion.div 
+                                key={card.id}
+                                onClick={() => setSelectedCard(card)}
+                                whileHover={{ y: -4, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+                                className="group relative p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl transition-all cursor-pointer overflow-hidden"
+                            >
+                                <div className={`h-10 w-10 rounded-2xl ${card.color} flex items-center justify-center mb-4 border border-white/10 group-hover:scale-110 transition-transform mx-auto lg:mx-0`}>
+                                    <card.icon className={`h-5 w-5 ${card.accentColor}`} />
+                                </div>
+                                <h3 className="font-bold text-center lg:text-left text-lg mb-1">{card.title}</h3>
+                                <p className="text-sm text-center lg:text-left text-sky-100/60 leading-snug">{card.description}</p>
+                                
+                                <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Sparkles className="h-4 w-4 text-sky-400/50" />
+                                </div>
+                            </motion.div>
+                        ))}
                     </div>
 
                     {/* Footer Social Proof sutil */}
-                    <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center gap-4 opacity-70">
-                        <div className="flex -space-x-2">
+                    <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center gap-6">
+                        <div className="flex -space-x-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="h-8 w-8 rounded-full border-2 border-sky-900 bg-sky-800" />
+                                <div key={i} className="h-10 w-10 rounded-full border-2 border-sky-900 bg-sky-800 flex items-center justify-center overflow-hidden">
+                                     <Image 
+                                        src={`https://i.pravatar.cc/150?u=${i + 10}`} 
+                                        alt="User" 
+                                        width={40} 
+                                        height={40} 
+                                        className="opacity-50 grayscale hover:grayscale-0 transition-all"
+                                    />
+                                </div>
                             ))}
                         </div>
-                        <p className="text-xs font-medium italic text-center sm:text-left">Confiança de centenas de veterinários em todo o Brasil.</p>
+                        <div className="flex-1 text-center sm:text-left">
+                            <p className="text-sm leading-relaxed text-sky-100/90 font-medium italic">
+                                "O ProntuVet mudou minha rotina. Agora consigo dar atenção real aos meus pacientes sem me preocupar com o tempo de digitação."
+                            </p>
+                            <p className="text-xs mt-1 text-sky-400 font-bold uppercase tracking-wider">
+                                — Dra. Carla Maysa, Veterinária
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Card Expandido */}
+            <AnimatePresence>
+                {selectedCard && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedCard(null)}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            layoutId={selectedCard.id}
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="relative w-full max-w-lg bg-slate-900 border border-white/20 rounded-[2.5rem] shadow-2xl shadow-black/50 overflow-hidden"
+                        >
+                            <div className="p-8 sm:p-10">
+                                <button 
+                                    onClick={() => setSelectedCard(null)}
+                                    className="absolute top-6 right-6 p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                                >
+                                    <X className="h-5 w-5 text-white/60" />
+                                </button>
+
+                                <div className={`h-16 w-16 rounded-[2rem] ${selectedCard.color} flex items-center justify-center mb-8 border border-white/10`}>
+                                    <selectedCard.icon className={`h-8 w-8 ${selectedCard.accentColor}`} />
+                                </div>
+
+                                <h2 className="text-3xl font-black text-white mb-4 tracking-tight">
+                                    {selectedCard.title}
+                                </h2>
+                                
+                                <p className="text-xl font-medium text-sky-300 mb-6 leading-tight">
+                                    {selectedCard.description}
+                                </p>
+
+                                <div className="space-y-4">
+                                    <p className="text-lg text-slate-300 leading-relaxed font-medium">
+                                        {selectedCard.longDescription}
+                                    </p>
+                                    
+                                    <div className="pt-6">
+                                        <Button 
+                                            onClick={() => setSelectedCard(null)}
+                                            className="w-full h-14 rounded-2xl bg-white text-slate-950 hover:bg-white/90 font-bold text-lg transition-transform active:scale-95"
+                                        >
+                                            Entendi, incrível!
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {/* Efeito decorativo no fundo do modal */}
+                            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-primary/20 blur-[100px] rounded-full pointer-events-none" />
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
+
 
 
