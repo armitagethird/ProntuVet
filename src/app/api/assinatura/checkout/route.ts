@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const nome = `${p.first_name || ''} ${p.last_name || ''}`.trim() || user.email!.split('@')[0]
 
   try {
-    const paymentLink = await criarCheckoutAssinatura({
+    const paymentLink = await criarCheckoutAssinatura(user.id, {
       nome,
       email: user.email!, // Email vem do auth.user
       cpf: p.cpf,

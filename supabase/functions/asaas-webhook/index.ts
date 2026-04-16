@@ -68,19 +68,31 @@ Deno.serve(async (req) => {
     body.payment?.customer?.email ??
     body.subscription?.customer?.email
 
-  console.log(`Evento recebido: ${evento} | Email: ${email ?? 'desconhecido'}`)
+  const externalReference: string | undefined = 
+    body.payment?.externalReference ?? 
+    body.subscription?.externalReference
 
-  if (!email) {
-    console.warn(`Evento ${evento} sem e-mail de cliente — ignorado`)
+  console.log(`Evento recebido: ${evento} | UserId (Ref): ${externalReference ?? 'n/a'} | Email: ${email ?? 'n/a'}`)
+
+  // Prioridade 1: externalReference (ID do banco)
+  // Prioridade 2: email (fallback)
+  let userId: string | null = null
+  if (externalReference) {
+    userId = externalReference
+  } else if (email) {
+    userId = await getUserIdByEmail(email)
+  }
+
+  if (!userId) {
+    console.warn(`Evento ${evento} não pôde ser vinculado a um usuário (Ref: ${externalReference}, Email: ${email}) — ignorado`)
     return new Response('ok', { status: 200 })
   }
+
+  const identity = email || userId
 
   switch (evento) {
     case 'PAYMENT_CONFIRMED':
     case 'PAYMENT_RECEIVED': {
-      const userId = await getUserIdByEmail(email)
-      if (!userId) break
-
       // Idempotência: checar se já está ativo
       const { data: profile } = await supabase
         .from('profiles')
@@ -95,7 +107,7 @@ Deno.serve(async (req) => {
         ''
 
       if (profile?.plano === 'platinum' && profile?.asaas_subscription_id === subscriptionId) {
-        console.log(`Plano já ativo para ${email} — evento ignorado (idempotência)`)
+        console.log(`Plano já ativo para ${identity} — evento ignorado (idempotência)`)
         break
       }
 
@@ -105,14 +117,13 @@ Deno.serve(async (req) => {
 
     case 'SUBSCRIPTION_DELETED':
     case 'PAYMENT_DELETED': {
-      const userId = await getUserIdByEmail(email)
-      if (userId) await rebaixarParaFree(userId)
+      await rebaixarParaFree(userId)
       break
     }
 
     case 'PAYMENT_OVERDUE':
       // Log apenas — não bloqueia imediatamente
-      console.log(`Pagamento em atraso: ${email}`)
+      console.log(`Pagamento em atraso: ${identity}`)
       break
 
     default:

@@ -5,17 +5,20 @@ function cleanNumbers(str: string) {
   return str.replace(/\D/g, '')
 }
 
-export async function criarCheckoutAssinatura(cliente: {
-  nome: string
-  email: string
-  cpf: string
-  phone: string
-  postalCode: string
-  address: string
-  addressNumber: string
-  province: string
-  complement?: string
-}) {
+export async function criarCheckoutAssinatura(
+  userId: string,
+  cliente: {
+    nome: string
+    email: string
+    cpf: string
+    phone: string
+    postalCode: string
+    address: string
+    addressNumber: string
+    province: string
+    complement?: string
+  }
+) {
   // Usa getRawEnvVar para evitar o dotenv-expand do Next.js, que quebra
   // chaves que começam com `$` (como as chaves do Asaas sandbox).
   const apiKey = (getRawEnvVar('ASAAS_API_KEY') || '').trim()
@@ -73,6 +76,7 @@ export async function criarCheckoutAssinatura(cliente: {
       cancelUrl: `${callbackBaseUrl}/assinatura/cancelado`,
       expiredUrl: `${callbackBaseUrl}/assinatura/expirado`,
     },
+    externalReference: userId,
     items: [
       {
         name: 'ProntuVet Platinum',
