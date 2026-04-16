@@ -18,7 +18,9 @@ function parseEnvFile(filePath: string): Record<string, string> {
   const content = fs.readFileSync(filePath, 'utf-8')
   const result: Record<string, string> = {}
 
-  for (const rawLine of content.split('\n')) {
+  const lines = content.split(/\r?\n|\r/)
+  
+  for (const rawLine of lines) {
     const line = rawLine.trim()
     if (!line || line.startsWith('#')) continue
 
@@ -34,6 +36,12 @@ function parseEnvFile(filePath: string): Record<string, string> {
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1)
+    }
+
+    // Se houver espaços e sinais de igual no meio do valor, pode ser um "vazamento"
+    // devido a quebra de linha mal-identificada. Avisamos no log se for o caso.
+    if (value.includes(' ') && value.includes('=')) {
+      console.warn(`[env-raw] Possível vazamento detectado na chave ${key}. Verifique as quebras de linha em .env.local`)
     }
 
     result[key] = value

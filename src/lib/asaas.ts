@@ -25,6 +25,15 @@ export async function criarCheckoutAssinatura(cliente: {
     throw new Error('Configuração ASAAS_API_KEY não encontrada no servidor.')
   }
 
+  // Validação de segurança: se a chave contém espaços ou '=' provavelmente houve um 
+  // erro de colagem ou de quebra de linha no arquivo .env / painel da Vercel.
+  if (apiKey.includes(' ') || apiKey.includes('=')) {
+    console.error('ASAAS_API_KEY detectada com formato inválido (contém espaços ou "=").')
+    throw new Error(
+      'A chave de API do Asaas parece estar malformada. Verifique se você não colou várias variáveis no mesmo campo no painel da Vercel ou se o arquivo .env tem quebras de linha corretas.'
+    )
+  }
+
   const requestHeaders = {
     'Content-Type': 'application/json',
     'access_token': apiKey,
@@ -94,6 +103,17 @@ export async function criarCheckoutAssinatura(cliente: {
     throw new Error(errorMessage)
   }
 
-  console.log('Link gerado:', data.paymentLink)
-  return data.paymentLink as string
+  // Loga a resposta completa para identificar o campo correto
+  console.log('Resposta Asaas (completa):', JSON.stringify(data, null, 2))
+
+  // O Asaas retorna o link de checkout no campo `link`
+  const checkoutUrl = data.link ?? data.url ?? data.paymentUrl ?? data.checkoutUrl ?? data.paymentLink
+
+  if (!checkoutUrl) {
+    console.error('Campo de URL não encontrado na resposta. Campos disponíveis:', Object.keys(data))
+    throw new Error('Link de pagamento não retornado pelo Asaas. Verifique os logs do servidor.')
+  }
+
+  console.log('URL do checkout:', checkoutUrl)
+  return checkoutUrl as string
 }
