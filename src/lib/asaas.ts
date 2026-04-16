@@ -19,10 +19,14 @@ export async function criarCheckoutAssinatura(cliente: {
   // Usa getRawEnvVar para evitar o dotenv-expand do Next.js, que quebra
   // chaves que começam com `$` (como as chaves do Asaas sandbox).
   const apiKey = (getRawEnvVar('ASAAS_API_KEY') || '').trim()
-  const baseUrl = getRawEnvVar('ASAAS_BASE_URL') || process.env.ASAAS_BASE_URL
+  const baseUrl = (getRawEnvVar('ASAAS_BASE_URL') || '').trim()
 
   if (!apiKey) {
     throw new Error('Configuração ASAAS_API_KEY não encontrada no servidor.')
+  }
+
+  if (!baseUrl) {
+    throw new Error('Configuração ASAAS_BASE_URL não encontrada no servidor. Verifique o painel da Vercel.')
   }
 
   // Validação de segurança: se a chave contém espaços ou '=' provavelmente houve um 
@@ -51,7 +55,14 @@ export async function criarCheckoutAssinatura(cliente: {
 
   // ASAAS_CALLBACK_URL deve ser uma URL HTTPS pública.
   // Em dev local aponte para o deploy da Vercel; em produção é igual a NEXT_PUBLIC_APP_URL.
-  const callbackBaseUrl = process.env.ASAAS_CALLBACK_URL || process.env.NEXT_PUBLIC_APP_URL || ''
+  const callbackBaseUrl = (getRawEnvVar('ASAAS_CALLBACK_URL') || getRawEnvVar('NEXT_PUBLIC_APP_URL') || '').trim()
+
+  if (!callbackBaseUrl || !callbackBaseUrl.startsWith('http')) {
+    console.error('ASAAS_CALLBACK_URL inválida ou ausente:', callbackBaseUrl)
+    throw new Error(
+      'A URL de callback (ASAAS_CALLBACK_URL) não foi configurada ou é inválida. Ela deve ser uma URL completa (ex: https://dominio.com).'
+    )
+  }
 
   const body = {
     billingTypes: ['CREDIT_CARD'],
