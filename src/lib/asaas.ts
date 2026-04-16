@@ -118,15 +118,31 @@ export async function criarCheckoutAssinatura(
     throw new Error(errorMessage)
   }
 
-  // Loga a resposta completa para identificar o campo correto
-  console.log('Resposta Asaas (completa):', JSON.stringify(data, null, 2))
+  // Loga a resposta completa
+  console.log('Resposta Asaas:', JSON.stringify(data, null, 2))
 
-  // O Asaas retorna o link de checkout no campo `link`
+  // O Asaas retorna o link no campo `link`
   const checkoutUrl = data.link ?? data.url ?? data.paymentUrl ?? data.checkoutUrl ?? data.paymentLink
 
   if (!checkoutUrl) {
-    console.error('Campo de URL não encontrado na resposta. Campos disponíveis:', Object.keys(data))
+    console.error('Campo de URL não encontrado. Campos disponíveis:', Object.keys(data))
     throw new Error('Link de pagamento não retornado pelo Asaas. Verifique os logs do servidor.')
+  }
+
+  // Salva o mapeamento checkoutSessionId → userId para o webhook identificar corretamente o usuário.
+  // O Asaas não propaga o externalReference ao payment, mas sempre inclui o checkoutSession no webhook.
+  if (data.id) {
+    const { createClient } = await import('@supabase/supabase-js')
+    const sb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { error: dbError } = await sb
+      .from('asaas_checkout_sessions')
+      .upsert({ checkout_session_id: data.id, user_id: userId }, { onConflict: 'checkout_session_id' })
+
+    if (dbError) console.error('Erro ao salvar checkout session:', dbError)
+    else console.log('Checkout session salvo:', data.id, '→ userId:', userId)
   }
 
   console.log('URL do checkout:', checkoutUrl)

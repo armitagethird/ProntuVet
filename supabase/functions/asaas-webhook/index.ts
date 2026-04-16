@@ -1,133 +1,177 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL')!,
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-)
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
+const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') ?? ''
+const ASAAS_BASE_URL = Deno.env.get('ASAAS_BASE_URL') ?? 'https://sandbox.asaas.com/api/v3'
+
+// Busca userId por email via REST Admin API
+async function getUserIdByEmail(email: string): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}&per_page=1`,
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    return data.users?.[0]?.id ?? null
+  } catch { return null }
+}
+
+// Busca externalReference da subscription na API do Asaas
+async function fetchSubscriptionExternalRef(subId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${ASAAS_BASE_URL}/subscriptions/${subId}`, {
+      headers: { 'access_token': ASAAS_API_KEY }
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    console.log('[webhook] Subscription externalReference via API:', data.externalReference)
+    return data.externalReference ?? null
+  } catch { return null }
+}
+
+// Busca email do customer na API do Asaas
+async function fetchCustomerEmail(customerId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${ASAAS_BASE_URL}/customers/${customerId}`, {
+      headers: { 'access_token': ASAAS_API_KEY }
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    console.log('[webhook] Customer email via API:', data.email)
+    return data.email ?? null
+  } catch { return null }
+}
+
+async function resolverUserId(eventData: any): Promise<string | null> {
+  const payment = eventData?.payment ?? {}
+
+  // ✅ Estratégia 1: checkoutSession → tabela asaas_checkout_sessions (MAIS CONFIÁVEL)
+  // Registramos esse mapeamento no momento da criação do checkout — 1 userId por session
+  const csId = payment.checkoutSession
+  if (csId) {
+    const { data } = await supabase
+      .from('asaas_checkout_sessions')
+      .select('user_id')
+      .eq('checkout_session_id', csId)
+      .single()
+    if (data?.user_id) {
+      console.log('[webhook] ✅ userId via checkoutSession:', csId, '→', data.user_id)
+      return data.user_id
+    }
+    console.log('[webhook] checkoutSession não registrado:', csId)
+  }
+
+  // Estratégia 2: externalReference no payment
+  if (payment.externalReference) {
+    console.log('[webhook] userId via payment.externalReference')
+    return payment.externalReference
+  }
+
+  // Estratégia 3: busca externalReference na subscription via API Asaas
+  const subId = payment.subscription ?? eventData?.subscription?.id
+  if (subId) {
+    const ref = await fetchSubscriptionExternalRef(subId)
+    if (ref) return ref
+
+    // Estratégia 4: lookup local pelo asaas_subscription_id
+    const { data } = await supabase.from('profiles').select('id').eq('asaas_subscription_id', subId).single()
+    if (data?.id) {
+      console.log('[webhook] userId via subscription_id local')
+      return data.id
+    }
+  }
+
+  // Estratégia 5: email do customer via API Asaas + lookup no auth
+  const customerId = typeof payment.customer === 'string' ? payment.customer : payment.customer?.id
+  if (customerId) {
+    const email = await fetchCustomerEmail(customerId)
+    if (email) {
+      const userId = await getUserIdByEmail(email)
+      if (userId) {
+        console.log('[webhook] userId via email do customer:', email)
+        return userId
+      }
+    }
+  }
+
+  console.error('[webhook] ❌ userId não encontrado. payment:', JSON.stringify(payment))
+  return null
+}
 
 async function ativarPlano(userId: string, subscriptionId: string) {
   const dataVencimento = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
-
   const { error } = await supabase
     .from('profiles')
-    .update({
-      plano: 'platinum',
-      asaas_subscription_id: subscriptionId,
-      data_vencimento: dataVencimento,
-      status: 'ativo',
-    })
+    .update({ plano: 'platinum', asaas_subscription_id: subscriptionId, data_vencimento: dataVencimento, status: 'ativo' })
     .eq('id', userId)
-
-  if (error) console.error('Erro ao ativar plano:', error)
-  else console.log(`Plano Platinum ativado para user ${userId}`)
+  if (error) console.error('[webhook] Erro ao ativar plano:', JSON.stringify(error))
+  else console.log(`[webhook] ✅ Plano Platinum ativado — user ${userId}`)
 }
 
 async function rebaixarParaFree(userId: string) {
   const { error } = await supabase
     .from('profiles')
-    .update({
-      plano: 'free',
-      asaas_subscription_id: null,
-      data_vencimento: null,
-      status: 'cancelado',
-    })
+    .update({ plano: 'free', asaas_subscription_id: null, data_vencimento: null, status: 'cancelado' })
     .eq('id', userId)
-
-  if (error) console.error('Erro ao rebaixar plano:', error)
-  else console.log(`Plano rebaixado para free — user ${userId}`)
-}
-
-async function getUserIdByEmail(email: string): Promise<string | null> {
-  // Usa o admin API com service_role para buscar o usuário pelo e-mail
-  const { data, error } = await supabase.auth.admin.getUserByEmail(email)
-  if (error || !data?.user) {
-    console.error(`Usuário não encontrado para o e-mail ${email}:`, error)
-    return null
-  }
-  return data.user.id
+  if (error) console.error('[webhook] Erro ao rebaixar:', JSON.stringify(error))
+  else console.log(`[webhook] ⬇️ Rebaixado para free — user ${userId}`)
 }
 
 Deno.serve(async (req) => {
-  // Validar token do Asaas
-  const token = req.headers.get('asaas-access-token')
-  if (token !== Deno.env.get('ASAAS_WEBHOOK_TOKEN')) {
-    console.warn('Token inválido recebido no webhook')
+  const rawText = await req.text()
+  const params = new URLSearchParams(rawText)
+
+  // Token vem no campo accessToken do form (Asaas Sandbox não usa header)
+  const tokenRecebido = params.get('accessToken') ?? req.headers.get('asaas-access-token')
+  const tokenEsperado = Deno.env.get('ASAAS_WEBHOOK_TOKEN')
+  if (tokenEsperado && tokenRecebido && tokenRecebido !== tokenEsperado) {
+    console.warn('[webhook] Token inválido:', tokenRecebido)
     return new Response('Não autorizado', { status: 401 })
   }
 
-  let body: any
-  try {
-    body = await req.json()
-  } catch {
-    return new Response('Payload inválido', { status: 400 })
-  }
-
-  const evento = body.event as string
-  const email: string | undefined =
-    body.payment?.customer?.email ??
-    body.subscription?.customer?.email
-
-  const externalReference: string | undefined = 
-    body.payment?.externalReference ?? 
-    body.subscription?.externalReference
-
-  console.log(`Evento recebido: ${evento} | UserId (Ref): ${externalReference ?? 'n/a'} | Email: ${email ?? 'n/a'}`)
-
-  // Prioridade 1: externalReference (ID do banco)
-  // Prioridade 2: email (fallback)
-  let userId: string | null = null
-  if (externalReference) {
-    userId = externalReference
-  } else if (email) {
-    userId = await getUserIdByEmail(email)
-  }
-
-  if (!userId) {
-    console.warn(`Evento ${evento} não pôde ser vinculado a um usuário (Ref: ${externalReference}, Email: ${email}) — ignorado`)
+  // O evento JSON está no campo "data" do form
+  const dataField = params.get('data')
+  if (!dataField) {
+    console.error('[webhook] Campo "data" ausente. Raw:', rawText.slice(0, 300))
     return new Response('ok', { status: 200 })
   }
 
-  const identity = email || userId
+  let eventData: any
+  try { eventData = JSON.parse(dataField) }
+  catch (e) { console.error('[webhook] Erro ao parsear data:', e); return new Response('ok', { status: 200 }) }
+
+  const evento: string = eventData?.event ?? ''
+  console.log(`[webhook] 🔔 Evento: ${evento}`)
 
   switch (evento) {
     case 'PAYMENT_CONFIRMED':
     case 'PAYMENT_RECEIVED': {
-      // Idempotência: checar se já está ativo
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('plano, asaas_subscription_id')
-        .eq('id', userId)
-        .single()
+      const userId = await resolverUserId(eventData)
+      if (!userId) break
 
-      const subscriptionId =
-        body.payment?.subscription ??
-        body.subscription?.id ??
-        profile?.asaas_subscription_id ??
-        ''
+      const subId = eventData?.payment?.subscription ?? eventData?.subscription?.id ?? ''
+      const { data: profile } = await supabase.from('profiles').select('plano, asaas_subscription_id').eq('id', userId).single()
 
-      if (profile?.plano === 'platinum' && profile?.asaas_subscription_id === subscriptionId) {
-        console.log(`Plano já ativo para ${identity} — evento ignorado (idempotência)`)
+      if (profile?.plano === 'platinum' && profile?.asaas_subscription_id === subId) {
+        console.log('[webhook] Já ativo — idempotência')
         break
       }
-
-      await ativarPlano(userId, subscriptionId)
+      await ativarPlano(userId, subId)
       break
     }
-
     case 'SUBSCRIPTION_DELETED':
     case 'PAYMENT_DELETED': {
-      await rebaixarParaFree(userId)
+      const userId = await resolverUserId(eventData)
+      if (userId) await rebaixarParaFree(userId)
       break
     }
-
-    case 'PAYMENT_OVERDUE':
-      // Log apenas — não bloqueia imediatamente
-      console.log(`Pagamento em atraso: ${identity}`)
-      break
-
     default:
-      console.log(`Evento ignorado: ${evento}`)
+      console.log(`[webhook] Evento ignorado: ${evento}`)
   }
 
   return new Response('ok', { status: 200 })
