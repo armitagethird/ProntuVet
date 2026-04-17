@@ -21,11 +21,18 @@ interface Template {
 interface DashboardClientProps {
   userFirstName: string
   templatesPromise: Promise<Template[]>
+  plano: string
+  monthlyUsage: number
 }
 
 const STORAGE_KEY = 'prontuvet_selected_template'
 
-export function DashboardClient({ userFirstName, templatesPromise }: DashboardClientProps) {
+export function DashboardClient({ 
+  userFirstName, 
+  templatesPromise, 
+  plano, 
+  monthlyUsage 
+}: DashboardClientProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -94,9 +101,22 @@ export function DashboardClient({ userFirstName, templatesPromise }: DashboardCl
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground/90 mb-2 px-4">
           Pronto para atender?
         </h1>
-        <p className="text-base text-muted-foreground w-full max-w-xl mx-auto">
+        <p className="text-base text-muted-foreground w-full max-w-xl mx-auto mb-3">
           Olá, <span className="font-medium text-foreground">{userFirstName}</span>! Inicie uma nova consulta.
         </p>
+
+        {/* Plan Badge */}
+        <div className="flex items-center gap-2">
+          {plano === 'platinum' ? (
+            <div className="px-3 py-1 bg-teal-500/10 text-teal-600 border border-teal-500/20 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
+               Platinum ✦
+            </div>
+          ) : (
+            <div className="px-3 py-1 bg-muted/50 text-muted-foreground border border-border/50 rounded-full text-xs font-bold shadow-sm">
+               Plano Gratuito · {monthlyUsage}/10 consultas
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="w-full max-w-md flex flex-col gap-4 transition-all duration-700">

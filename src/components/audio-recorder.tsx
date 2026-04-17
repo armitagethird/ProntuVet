@@ -3,11 +3,20 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Mic, Square, Loader2, AlertCircle, Pause, Play, ChevronLeft, CheckCircle2 } from 'lucide-react'
+import { Mic, Square, Loader2, AlertCircle, Pause, Play, ChevronLeft, CheckCircle2, Zap, ArrowRight, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog"
+import Link from 'next/link'
 
 interface AudioRecorderProps {
     templateId: string
@@ -127,6 +136,7 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
     const [recordingTime, setRecordingTime] = useState(0)
     const [errorDetails, setErrorDetails] = useState<string | null>(null)
     const [stream, setStream] = useState<MediaStream | null>(null)
+    const [showLimitModal, setShowLimitModal] = useState(false)
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
@@ -262,7 +272,9 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
             formData.append('templateId', templateId)
             formData.append('duracaoSeconds', recordingTime.toString())
 
-            const edgeFunctionUrl = 'https://wfiolpylleatfxiznxmc.supabase.co/functions/v1/process-consultation'
+            const edgeFunctionUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/process-consultation`
+            
+            console.log("Calling Edge Function at:", edgeFunctionUrl)
 
             const response = await fetch(edgeFunctionUrl, {
                 method: 'POST',
@@ -275,8 +287,39 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
             const result = await response.json()
 
             if (!response.ok) {
+                if (response.status === 429) {
+                    setShowLimitModal(true)
+                    throw new Error('Limite de consultas atingido.')
+                }
                 const errorMessage = result.error || result.message || 'Falha ao processar consulta'
                 throw new Error(errorMessage)
+            }
+
+            // Busca uso após sucesso para feedback progressivo
+            try {
+                const firstDayOfMonth = new Date()
+                firstDayOfMonth.setUTCHours(0, 0, 0, 0)
+                firstDayOfMonth.setUTCDate(1)
+
+                const { count } = await supabase
+                    .from('uso_consultas')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', session.user.id)
+                    .eq('sucesso', true)
+                    .gte('data_consulta', firstDayOfMonth.toISOString())
+
+                if (count === 1) {
+                    toast.success('Ótima consulta! Você tem 9 restantes no plano gratuito.')
+                } else if (count === 8) {
+                    toast.info('Atenção: apenas 2 consultas restantes este mês.', {
+                        action: {
+                            label: 'Upgrade',
+                            onClick: () => router.push('/assinatura')
+                        }
+                    })
+                }
+            } catch (err) {
+                console.error("Erro ao verificar uso para toast:", err)
             }
 
             toast.success('Consulta estruturada com sucesso!')
@@ -429,6 +472,53 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                     )}
                 </CardContent>
             </Card>
+
+            {/* Modal de Limite Atingido */}
+            <Dialog open={showLimitModal} onOpenChange={setShowLimitModal}>
+                <DialogContent className="max-w-md p-0 overflow-hidden border-none bg-transparent shadow-2xl">
+                    <div className="bg-gradient-to-br from-card/95 to-card/90 backdrop-blur-2xl border border-teal-500/10 rounded-[2.5rem] overflow-hidden">
+                        <div className="relative h-32 bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center">
+                            <div className="absolute inset-0 opacity-10">
+                                <Zap className="w-full h-full scale-150 rotate-12" />
+                            </div>
+                            <div className="bg-white/20 backdrop-blur-md p-4 rounded-3xl border border-white/30 shadow-xl">
+                                <Zap className="w-10 h-10 text-white fill-current" />
+                            </div>
+                            <button 
+                                onClick={() => setShowLimitModal(false)}
+                                className="absolute top-4 right-4 p-2 rounded-full bg-black/10 text-white hover:bg-black/20 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-8 text-center space-y-4">
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-black tracking-tight text-foreground">Limite Atingido</h2>
+                                <p className="text-muted-foreground font-medium">
+                                    Você atingiu o limite de consultas gratuitas deste mês. Para continuar transformando suas consultas em medicina de alta precisão, faça o upgrade para o Platinum.
+                                </p>
+                            </div>
+
+                            <div className="pt-4 flex flex-col gap-3">
+                                <Link href="/assinatura" className="w-full">
+                                    <Button className="w-full h-14 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-2xl shadow-lg shadow-teal-500/20 transition-all hover:scale-[1.02] group">
+                                        Fazer Upgrade para Platinum
+                                        <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                                    </Button>
+                                </Link>
+                                <Button 
+                                    variant="ghost" 
+                                    onClick={() => setShowLimitModal(false)}
+                                    className="w-full h-12 rounded-xl text-muted-foreground font-semibold hover:bg-background/50"
+                                >
+                                    Deixar para depois
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

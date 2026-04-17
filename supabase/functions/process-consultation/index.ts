@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
-import { GoogleGenerativeAI, SchemaType } from 'https://esm.sh/@google/generative-ai@0.14.0'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.1'
+import { GoogleGenerativeAI, SchemaType } from 'https://esm.sh/@google/generative-ai@0.21.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -106,38 +106,54 @@ Deno.serve(async (req) => {
 
     const genAI = new GoogleGenerativeAI(geminiApiKey)
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-2.5-flash-lite", 
         systemInstruction: `Você é um assistente veterinário de elite e um auditor implacável.
 REGRAS CRÍTICAS CONTRA ALUCINAÇÃO:
 1. Você deve primeiro avaliar o áudio como um auditor médico. Ele trata de uma consulta veterinária válida?
 2. Se o áudio for silencioso, ruidoso, ininteligível, ou contiver assuntos totalmente nulos (como receita de bolo, ou pessoas testando mic), defina 'is_valid_consultation' = false. E preencha 'rejection_reason' com o que foi ouvido.
 3. Se for válido, extraia os dados biológicos e clínicos rigorosamente.
-4. NUNCA crie ou infira o nome do cachorro ou os sintomas se não foram explicitamente mencionados. Retorne vazio se não existir.`,
+4. NUNCA crie ou infira o nome do cachorro ou os sintomas se não foram explicitamente mencionados. Retorne vazio se não existir.
+5. O campo 'prontuario' DEVE ser uma lista (ARRAY) de objetos, onde cada objeto tem 'secao' (título do template) e 'conteudo' (texto extraído).
+6. Você DEVE gerar resumos globais (tutor_summary, vet_summary e resumo_trilha) baseados na consulta inteira, além da lista detalhada no prontuário.`,
         generationConfig: {
             temperature: 0.1, // Determinismo mecânico absoluto
             topK: 16,
             topP: 0.3,
             responseMimeType: "application/json",
+            // responseSchema corrigido para forçar a geração de resumos
             responseSchema: {
                 type: SchemaType.OBJECT,
                 properties: {
-                    is_valid_consultation: { type: SchemaType.BOOLEAN, description: "True se for uma consulta veterinária audível e coerente. False se for silêncio, ruído ou conversa de outro assunto." },
+                    is_valid_consultation: { type: SchemaType.BOOLEAN, description: "True se for uma consulta veterinária audível e coerente." },
                     confidence_score: { type: SchemaType.NUMBER, description: "De 0 a 100 quão legível foi o áudio clínico." },
-                    rejection_reason: { type: SchemaType.STRING, description: "Se is_valid_consultation explícito como false, explicar por quê." },
+                    rejection_reason: { type: SchemaType.STRING, description: "Se inválido, explicar por quê." },
                     animal_name: { type: SchemaType.STRING, nullable: true },
                     animal_species: { type: SchemaType.STRING, nullable: true },
                     tutor_name: { type: SchemaType.STRING, nullable: true },
-                    tutor_summary: { type: SchemaType.STRING, nullable: true },
-                    vet_summary: { type: SchemaType.STRING, nullable: true },
-                    resumo_trilha: { type: SchemaType.STRING, nullable: true },
-                    transcription: { type: SchemaType.STRING, nullable: true },
+                    tutor_summary: { type: SchemaType.STRING, description: "Resumo amigável e acolhedor para o tutor." },
+                    vet_summary: { type: SchemaType.STRING, description: "Resumo técnico clínico para o veterinário." },
+                    resumo_trilha: { type: SchemaType.STRING, description: "Resumo ultra-compacto de 2 linhas para a listagem." },
+                    transcription: { type: SchemaType.STRING, description: "Transcrição fiel do áudio." },
                     tags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING }, nullable: true },
-                    prontuario: { type: SchemaType.STRING, nullable: true }
+                    prontuario: { 
+                        type: SchemaType.ARRAY, 
+                        description: "Lista de seções clínicas extraídas.",
+                        items: {
+                          type: SchemaType.OBJECT,
+                          properties: {
+                            secao: { type: SchemaType.STRING, description: "Título da seção conforme o template." },
+                            conteudo: { type: SchemaType.STRING, description: "Conteúdo clínico extraído para esta seção." }
+                          },
+                          required: ["secao", "conteudo"]
+                        },
+                        nullable: true 
+                    }
                 },
-                required: ["is_valid_consultation", "confidence_score", "transcription", "prontuario"]
+                required: ["is_valid_consultation", "confidence_score", "transcription", "tutor_summary", "vet_summary", "resumo_trilha", "prontuario"]
             }
         }
     })
+
 
     const arrayBuffer = await audioFile.arrayBuffer()
     const bytes = new Uint8Array(arrayBuffer)
@@ -185,6 +201,16 @@ REGRAS CRÍTICAS CONTRA ALUCINAÇÃO:
           throw new Error("Não foi possível prosseguir com a escuta. Nenhum áudio detectado.")
       }
 
+      // NOVO: Converter o ARRAY do prontuário em OBJETO para manter compatibilidade com DB e Frontend
+      const structuredObject: Record<string, string> = {}
+      if (Array.isArray(geminiData.prontuario)) {
+        geminiData.prontuario.forEach((item: any) => {
+          if (item.secao && item.conteudo) {
+            structuredObject[item.secao] = item.conteudo
+          }
+        })
+      }
+
       // Gerenciar Animal e Salvar Consulta (Lógica simplificada para a Edge Function)
       let animalId = null
       if (geminiData.animal_name) {
@@ -201,7 +227,7 @@ REGRAS CRÍTICAS CONTRA ALUCINAÇÃO:
         user_id: user.id,
         title: geminiData.animal_name ? `Consulta: ${geminiData.animal_name}` : 'Consulta Veterinária',
         transcription: geminiData.transcription,
-        structured_content: geminiData.prontuario,
+        structured_content: structuredObject, // Usar o objeto convertido aqui
         animal_id: animalId,
         tutor_name: geminiData.tutor_name,
         tutor_summary: geminiData.tutor_summary,

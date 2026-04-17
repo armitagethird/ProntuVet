@@ -36,17 +36,19 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
 
                 // Fetch Daily
                 const { count: dailyCount } = await supabase
-                    .from('consultations')
+                    .from('uso_consultas')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', initialUser.id)
-                    .gte('created_at', today.toISOString())
+                    .eq('sucesso', true)
+                    .gte('data_consulta', today.toISOString())
 
                 // Fetch Monthly
                 const { count: monthlyCount } = await supabase
-                    .from('consultations')
+                    .from('uso_consultas')
                     .select('*', { count: 'exact', head: true })
                     .eq('user_id', initialUser.id)
-                    .gte('created_at', firstDayOfMonth.toISOString())
+                    .eq('sucesso', true)
+                    .gte('data_consulta', firstDayOfMonth.toISOString())
 
                 setUsage({
                     daily: dailyCount || 0,
@@ -143,6 +145,34 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
         await supabase.auth.updateUser({
             data: { my_pets: updatedPets }
         })
+    }
+
+    const handleCancelSubscription = async () => {
+        const id = toast.loading('Processando cancelamento...')
+        try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) throw new Error('Não autenticado')
+
+            const res = await fetch('/api/assinatura/cancelar', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            })
+
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.erro || 'Erro ao cancelar')
+
+            toast.success('Assinatura cancelada com sucesso.', { id })
+            
+            // Recarrega a página para atualizar o status do plano vindo do servidor/URL
+            setTimeout(() => {
+                window.location.reload()
+            }, 1500)
+            
+        } catch (error: any) {
+            toast.error(error.message || 'Erro ao cancelar assinatura.', { id })
+        }
     }
 
     return (
@@ -327,7 +357,55 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
                             <strong>Dica Profissional:</strong> Você economizou aproximadamente <strong>{Math.round(usage.monthly * 12)} minutos</strong> de digitação este mês com o ProntuVet.
                         </p>
                     </div>
+
+                    {/* Botão de Cancelamento para Platinum */}
+                    {plano === 'platinum' && (
+                      <div className="mt-8 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="space-y-1">
+                          <p className="text-sm font-bold text-foreground">Gerenciar Assinatura</p>
+                          <p className="text-xs text-muted-foreground">O cancelamento é imediato e interrompe a renovação automática.</p>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-muted-foreground hover:text-red-500 hover:bg-red-500/5 text-xs font-semibold"
+                          onClick={() => {
+                            if (window.confirm('Tem certeza que deseja cancelar sua assinatura Platinum? Você perderá o acesso ilimitado imediatamente.')) {
+                              handleCancelSubscription();
+                            }
+                          }}
+                          disabled={usage.loading}
+                        >
+                          Cancelar Assinatura
+                        </Button>
+                      </div>
+                    )}
                 </div>
+
+                {/* UPGRADE CARD */}
+                {plano === 'free' && (
+                  <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-teal-500 to-teal-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/30 group">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                      <Zap className="w-32 h-32" />
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="text-center md:text-left space-y-2">
+                        <h3 className="text-2xl font-black tracking-tight">Quer mais consultas?</h3>
+                        <p className="text-teal-50/80 max-w-md font-medium">
+                          Assine o Platinum e tenha 200 consultas/mês, histórico completo, exportação PDF e muito mais.
+                        </p>
+                      </div>
+                      
+                      <Link href="/assinatura" className="w-full md:w-auto">
+                        <Button className="w-full bg-white text-teal-600 hover:bg-teal-50 font-bold px-8 py-6 rounded-2xl shadow-lg transition-all hover:scale-105 group/btn">
+                          Fazer upgrade 
+                          <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
             </div>
 

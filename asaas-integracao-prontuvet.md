@@ -403,32 +403,32 @@ Criar `src/app/assinatura/cancelado/page.tsx` e `expirado/page.tsx` com mensagen
 
 ---
 
-## Passo 9 — Proteger features por plano
+## Passo 9 — Proteger features por plano (Edge Function)
 
-Na Edge Function que processa consultas de IA, adicionar verificação de plano:
+Na Edge Function `supabase/functions/process-consultation/index.ts`, a verificação de limites é feita de forma tripla (Hora, Dia, Mês) consultando a tabela `uso_consultas`:
 
 ```typescript
-const { data: profile } = await supabase
-  .from('profiles')
-  .select('plano, status_assinatura')
-  .eq('id', user.id)
-  .single()
+// Exemplo de lógica implementada
+const { count } = await supabase
+  .from('uso_consultas')
+  .select('*', { count: 'exact', head: true })
+  .eq('user_id', user.id)
+  .eq('sucesso', true)
+  .gte('data_consulta', inicioMes)
 
-const limiteMensal = profile?.plano === 'platinum' ? 200 : 10
+const limite = profile?.plano === 'platinum' ? 200 : 10
 
-if ((count ?? 0) >= limiteMensal) {
-  return new Response(
-    JSON.stringify({
-      erro: profile?.plano === 'free'
-        ? 'Limite do plano gratuito atingido. Faça upgrade para o Platinum.'
-        : 'Limite mensal atingido.',
-      plano: profile?.plano,
-      limite: limiteMensal
-    }),
-    { status: 429 }
-  )
+if (count >= limite) {
+  return new Response(JSON.stringify({ error: 'LIMIT_EXCEEDED' }), { status: 429 })
 }
 ```
+
+### 9.1 UX de Feedback no Frontend
+No arquivo `src/components/audio-recorder.tsx`, tratamos o erro 429 para exibir um modal de upgrade bloqueante:
+
+- **1ª Consulta**: Toast de boas-vindas ao plano free.
+- **8ª Consulta**: Toast de aviso (80% da cota).
+- **Status 429**: Bloqueio total da interface com botão para `/assinatura`.
 
 ---
 
@@ -479,3 +479,5 @@ Para testar PIX no sandbox, o Asaas gera um QR Code que você "paga" direto pelo
 **Idempotência** — o Asaas pode enviar o mesmo evento mais de uma vez. Ao processar o webhook, verifique se o plano já está ativo antes de atualizar para evitar processamento duplicado.
 
 **Sandbox vs produção** — as API keys são diferentes. Nunca use a key de produção em ambiente de desenvolvimento.
+
+**SDK do Google em Edge Functions** — Para evitar erros `503 Service Unavailable` no Deno (Supabase Edge), utilize sempre a versão estável do SDK `@google/generative-ai@0.21.0` ou superior.

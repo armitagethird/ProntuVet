@@ -58,7 +58,7 @@ export async function criarCheckoutAssinatura(
 
   // ASAAS_CALLBACK_URL deve ser uma URL HTTPS pública.
   // Em dev local aponte para o deploy da Vercel; em produção é igual a NEXT_PUBLIC_APP_URL.
-  const callbackBaseUrl = (getRawEnvVar('ASAAS_CALLBACK_URL') || getRawEnvVar('NEXT_PUBLIC_APP_URL') || '').trim()
+  const callbackBaseUrl = 'https://prontuvet.vercel.app'
 
   if (!callbackBaseUrl || !callbackBaseUrl.startsWith('http')) {
     console.error('ASAAS_CALLBACK_URL inválida ou ausente:', callbackBaseUrl)
@@ -99,6 +99,7 @@ export async function criarCheckoutAssinatura(
     subscription: {
       cycle: 'MONTHLY',
       nextDueDate: new Date().toISOString().split('T')[0],
+      externalReference: userId,
     },
   }
 
@@ -147,4 +148,40 @@ export async function criarCheckoutAssinatura(
 
   console.log('URL do checkout:', checkoutUrl)
   return checkoutUrl as string
+}
+
+export async function cancelarAssinatura(subscriptionId: string) {
+  const apiKey = (getRawEnvVar('ASAAS_API_KEY') || '').trim()
+  const baseUrl = (getRawEnvVar('ASAAS_BASE_URL') || '').trim()
+
+  if (!apiKey || !baseUrl) {
+    throw new Error('Configurações do Asaas ausentes no servidor.')
+  }
+
+  console.log(`[asaas] 🗑️ Iniciando cancelamento da assinatura: ${subscriptionId}`)
+
+  const res = await fetch(`${baseUrl}/subscriptions/${subscriptionId}`, {
+    method: 'DELETE',
+    headers: {
+      'accept': 'application/json',
+      'access_token': apiKey,
+    },
+  })
+
+  // Se retornar 404, consideramos que já foi removido (sucesso para o nosso contexto)
+  if (res.status === 404) {
+    console.warn(`[asaas] Assinatura ${subscriptionId} não encontrada no Asaas (já removida?).`)
+    return { success: true, alreadyRemoved: true }
+  }
+
+  const data = await res.json().catch(() => ({}))
+
+  if (!res.ok) {
+    console.error(`[asaas] Erro ao cancelar (${res.status}):`, JSON.stringify(data, null, 2))
+    const errorMessage = data.errors?.[0]?.description || 'Erro ao cancelar assinatura no Asaas'
+    throw new Error(errorMessage)
+  }
+
+  console.log(`[asaas] ✅ Assinatura ${subscriptionId} cancelada com sucesso.`)
+  return { success: true, data }
 }

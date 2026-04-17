@@ -23,12 +23,20 @@ export default async function ConsultationDetailsPage(props: { params: Promise<{
         notFound()
     }
 
+    let parsedStructuredContent = data.structured_content;
+    if (typeof parsedStructuredContent === 'string') {
+        try {
+            parsedStructuredContent = JSON.parse(parsedStructuredContent);
+        } catch (e) {
+            // Fallback for when content is plain text instead of stringified JSON
+            parsedStructuredContent = { "Conteúdo Clínico": parsedStructuredContent };
+        }
+    }
+
     // Convert empty/JSON formatted object properly
     const safeData = {
         ...data,
-        structured_content: typeof data.structured_content === 'string'
-            ? JSON.parse(data.structured_content)
-            : data.structured_content
+        structured_content: parsedStructuredContent
     }
 
     return (

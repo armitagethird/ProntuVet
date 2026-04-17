@@ -12,7 +12,8 @@ Este documento centraliza as regras de negócio, limites técnicos e a arquitetu
 | **Cota Mensal** | 200 consultas | Limite total de processamentos IA (Reset todo dia 1). |
 | **Cota Diária** | 20 consultas | Trava de segurança para proteção de infraestrutura. |
 | **Duração Áudio** | 10 minutos | Tempo máximo por consulta (600 segundos). |
-| **Precisão Clínica** | Alta | Uso do modelo **Gemini 2.5 Flash-Lite** (Nativo Multimodal). |
+| **Precisão Clínica** | Máxima | Uso do modelo **Gemini 2.5 Flash-Lite** (Nativo Multimodal). |
+| **Infraestrutura** | Supabase Edge | Processamento em Vercel/Supabase Edge Functions via Deno. |
 
 ---
 
@@ -36,17 +37,17 @@ Saímos de uma arquitetura de 3 passos para uma extração atômica, visando **l
 ## 🛠️ Onde Alterar (Manutenção)
 
 ### Limites de Consultas (Backend)
-- **Arquivo**: `src/app/api/process-consultation/route.ts`
-- **Lógica**: Buscas no Supabase com `gte` baseadas em `today` e `firstDayOfMonth`.
+- **Arquivo**: `supabase/functions/process-consultation/index.ts`
+- **Lógica**: Verificação tripla (Mês, Dia, Hora) na tabela `uso_consultas`.
 
 ### Motor da IA (Prompt & Modelo)
-- **Arquivo**: `src/lib/gemini.ts`
-- **Lógica**: Função `generateProntuario` com `system_instruction` rígida e `temperature: 0.0`.
+- **Arquivo**: `supabase/functions/process-consultation/index.ts`
+- **Lógica**: Utilização do SDK `@google/generative-ai@0.21.0` (versão mínima estável para evitar 503 Service Unavailable no Deno) e modelo `gemini-2.5-flash-lite`.
 
-### Cronômetro e Reset (Frontend)
+### UX de Monetização (Frontend)
 - **Arquivo**: `src/components/audio-recorder.tsx`
-- **Lógica**: `resetRecorder()` limpa o estado, zera o tempo e remove alertas de erro para nova tentativa.
+- **Lógica**: Interceptação de erro 429, exibição de modal de bloqueio e toasts de feedback progressivo (1ª e 8ª consulta).
 
 ---
-*Última atualização: 2026-04-10 | Versão IA: 4.5 (Atomic Multimodal 2.5)*
+*Última atualização: 2026-04-16 | Versão IA: 5.0 (Edge Multimodal 2.5 + SDK 0.21)*
 
