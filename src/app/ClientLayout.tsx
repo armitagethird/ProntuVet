@@ -31,7 +31,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }} // Native-style quick cubic-bezier
+            transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }} // Native-style ultra-quick cubic-bezier
             className="flex-1 flex flex-col"
           >
             {children}

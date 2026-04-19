@@ -18,7 +18,7 @@ export default async function DashboardPage() {
 
     // Buscas paralelas para não travar a renderização
     const [profileRes, usageRes] = await Promise.all([
-        supabase.from('profiles').select('plano').eq('id', user.id).single(),
+        supabase.from('profiles').select('plano, status').eq('id', user.id).single(),
         supabase
             .from('uso_consultas')
             .select('*', { count: 'exact', head: true })
@@ -36,6 +36,7 @@ export default async function DashboardPage() {
             userFirstName={userFirstName} 
             templatesPromise={templatesPromise} 
             plano={plano}
+            status={profileRes.data?.status}
             monthlyUsage={monthlyUsage}
         />
     )

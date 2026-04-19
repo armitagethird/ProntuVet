@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition, Suspense, use } from 'react'
-import { Activity, Dog, Loader2 } from 'lucide-react'
+import { Activity, Dog, Loader2, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { 
   Select, 
@@ -22,6 +22,7 @@ interface DashboardClientProps {
   userFirstName: string
   templatesPromise: Promise<Template[]>
   plano: string
+  status?: string
   monthlyUsage: number
 }
 
@@ -31,6 +32,7 @@ export function DashboardClient({
   userFirstName, 
   templatesPromise, 
   plano, 
+  status,
   monthlyUsage 
 }: DashboardClientProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
@@ -107,13 +109,13 @@ export function DashboardClient({
 
         {/* Plan Badge */}
         <div className="flex items-center gap-2">
-          {plano === 'platinum' ? (
-            <div className="px-3 py-1 bg-teal-500/10 text-teal-600 border border-teal-500/20 rounded-full text-xs font-black uppercase tracking-widest shadow-sm">
-               Platinum ✦
+          {plano === 'platinum' && status !== 'cancelado' ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-slate-200 via-white to-slate-200 text-slate-700 border border-slate-300/50 shadow-sm shadow-slate-400/10 rounded-full text-xs font-black uppercase tracking-widest">
+               <Zap className="w-3 h-3 fill-current text-slate-400" /> Platinum
             </div>
           ) : (
             <div className="px-3 py-1 bg-muted/50 text-muted-foreground border border-border/50 rounded-full text-xs font-bold shadow-sm">
-               Plano Gratuito · {monthlyUsage}/10 consultas
+               {status === 'cancelado' ? 'Assinatura Cancelada' : 'Plano Gratuito'} · {monthlyUsage}/20 consultas
             </div>
           )}
         </div>
@@ -141,7 +143,7 @@ export function DashboardClient({
           onClick={handleStartListening}
           disabled={isPending}
           suppressHydrationWarning 
-          className="group w-full focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem] disabled:opacity-90 disabled:cursor-wait text-left"
+          className={`group w-full focus:outline-none focus:ring-4 focus:ring-teal-500/20 rounded-[2.5rem] disabled:opacity-90 disabled:cursor-wait text-left transition-all ${isPending ? 'animate-rgb-euphoric' : 'animate-rgb-pulse'}`}
         >
           <div className="relative overflow-hidden border border-teal-500/20 bg-card/85 backdrop-blur-sm rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 hover:scale-[1.02] hover:border-teal-500/50 hover:shadow-[0_20px_40px_rgba(20,184,166,0.15)] flex flex-col items-center justify-center text-center gap-4">
             {/* Hover Gradient Overlay */}

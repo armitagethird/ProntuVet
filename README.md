@@ -1,112 +1,85 @@
 <div align="center">
 
-# 🐾 ProntuVet
+# 🐾 ProntuVet AI
+**O Primeiro Ecossistema Clínico Copiloto para Médicos-Veterinários.**
 
-**Copiloto clínico com IA para médicos-veterinários.**
-Transforma a conversa da consulta em prontuário estruturado — em segundos.
+No ProntuVet, transformamos a audição passiva de uma consulta clínica em um **prontuário médico rigorosamente estruturado, indexado e formatado** — tudo em meros segundos, sem interrupções e com privacidade zero-trust.
 
-[![MIT License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
-[![Status](https://img.shields.io/badge/status-produção-success?style=flat-square)]()
-[![Deploy](https://img.shields.io/badge/deploy-Vercel-000000?style=flat-square&logo=vercel)](https://clinic-scribe-ai-1-1.vercel.app)
-[![TypeScript](https://img.shields.io/badge/TypeScript-100%25-3178c6?style=flat-square&logo=typescript&logoColor=white)]()
+[![Status](https://img.shields.io/badge/status-produção-success?style=flat-square&color=22c55e)]()
+[![Stack](https://img.shields.io/badge/stack-Next.js_14-black?style=flat-square&logo=next.js)]()
+[![Database](https://img.shields.io/badge/database-Supabase-3ECF8E?style=flat-square&logo=supabase)]()
+[![AI](https://img.shields.io/badge/AI-Gemini_2.5_Flash-4285F4?style=flat-square&logo=google)]()
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-**[→ Ver demo ao vivo](https://clinic-scribe-ai-1-1.vercel.app)**
+**[→ Explorar Plataforma ao Vivo](https://clinic-scribe-ai-1-1.vercel.app)**
+
+---
+
+</div>
+
+## 🚀 A Revolução Clínica em Suas Mãos
+
+O fluxo de trabalho de um médico-veterinário é exaustivo. O ProntuVet atua como um assistente invisível que consolida os eventos de forma autônoma.
+
+- 🎙️ **Escuta Contínua (Edge AI):** Captura de áudio da consulta diretamente via navegador.
+- 📝 **Inteligência Estruturadora:** A IA filtra conversas supérfluas e extrai anamnese, exame físico, diagnóstico e prescrições.
+- 🔒 **Zero-Trust Storage:** Seus áudios, anexos médicos e exames são processados e imediatamente mantidos em **armazenamento privado** (Signed URLs).
+- 💬 **Bilinguismo Sistêmico:** Gera resumos hiper-técnicos para seu histórico, e resumos amigáveis/acolhedores para o WhatsApp do Tutor.
+- 💳 **Módulo de Assinaturas (Sistema Platinum):** Pagamento nativo processado via Asaas, com gerador de links automáticos e ativação via Webhook remoto.
+
+---
+
+## 🏗️ Engenharia e Arquitetura de Alto Padrão
+
+Nossa missão é entregar uma UX irretocável garantindo uma engenharia corporativa. Durante a jornada de desenvolvimento do ProntuVet, arquitetamos um motor de máxima performance:
+
+### ⚡ Estabilidade da Stack Gold (LTS)
+Para evadir as falhas inerentes de frameworks em Release Candidate (RC) e compilações lentas, o projeto roda puramente na união testada pelo mercado: **Next.js 14.2.16** e **React 18.3.1**. O design system e animações rodam livres de *jank* de renderização via `Framer Motion` e `Tailwind CSS`.
+
+### 🛡️ Defesa Criptográfica contra o ES256 Bug 
+Resolvemos de ponta-a-ponta incompatibilidades em validações JWT em ambientes Serverless/Edge (Deno e Vercel), trancando as chaves de infraestrutura para versões cravadas (`@supabase/supabase-js 2.45.6`). Resultado? Zero quedas de roteamento, falhas de middleware, ou vulnerabilidades de autenticação cruzada.
+
+<div align="center">
+
+```mermaid
+graph TD
+    User((Veterinário)) -->|Interação 0ms| WebApp[Next.js 14 App Router]
+    WebApp -->|Proteção Middleware| Auth[Supabase Auth Livre de ES256]
+    WebApp -->|Audios & Anexos| Storage[Signed URLs Privadas]
+    WebApp -.->|Eventos Asaas| Webhook[Supabase Edge Functions]
+    Webhook --> API[API Gemini 2.5]
+    Webhook --> DB[(PostgreSQL + RLS)]
+    API -->|Processamento JSON| DB
+```
+*Fluxo Unificado de Autenticação, Processamento e Faturamento*
 
 </div>
 
 ---
 
-## 🛡️ Segurança e Boas Práticas (Auditado)
+## 🔒 Segurança em Primeiro Lugar
 
-O ProntuVet foi submetido a uma auditoria técnica rigorosa para garantir a proteção de dados sensíveis e a robustez da aplicação.
+Levamos o dado médico a sério. O ProntuVet é desenhado nativamente com os padrões **HIPAA-like** aplicados na engenharia de software moderno:
 
-### 🔒 Segurança de Dados (Supabase)
-- **RLS (Row Level Security)**: 100% das tabelas possuem políticas ativas. Um veterinário nunca consegue acessar ou modificar dados de outro profissional.
-- **Buckets Privados**: O armazenamento de áudios e anexos clínicos é estritamente privado. O acesso é feito via **Signed URLs** que expiram em 1 hora, garantindo que arquivos nunca fiquem públicos na internet.
-- **Policies por User ID**: Todas as operações de banco e storage validam o `auth.uid()` do usuário autenticado no nível do PostgreSQL.
+1. **Row Level Security (RLS) Nativo:** Nenhum veterinário tem acesso físico, via querier ou via cliente às linhas de outro profissional.
+2. **Isolamento de IA (Anti-Hallucination):** Prompts estritos e injetados via infraestrutura Deno com validações duras (`is_valid_consultation`), reduzindo alucinações se o áudio não corresponder a medicina real.
+3. **Limite de Rate Limit Restrito:** Segurança contra uso exaustivo e abusivo da IA e banco de dados isolados por tier de assinatura.
 
-### 💻 Engenharia de Software
-- **Type Safety**: TypeScript estrito em toda a base de código, eliminando erros comuns em tempo de execução e garantindo interfaces de dados confiáveis.
-- **Fail-Fast Validation**: Validação rigorosa de variáveis de ambiente e chaves de API logo no carregamento da aplicação.
-- **Sanitização de Inputs**: Proteção nativa contra variantes de SQL Injection em buscas textuais complexas.
-- **Race Condition Protection**: Implementação de `AbortController` em requisições assíncronas para manter a interface consistente e evitar sobrescritas de estado.
+Para mais detalhes sobre as restrições arquiteturais e protocolos que devem ser mantidos ao contribuir para o código, veja nosso plano diretor: **[🛡️ DOCUMENTO DE SEGURANÇA (SECURITY.md)](./SECURITY.md)**
 
 ---
 
-## 🚀 Funcionalidades Principais
+## 👨‍💻 Sobre e Autoria
 
-- 🎙️ **Escuta em tempo real** — captura o áudio da consulta diretamente no navegador.
-- 📝 **Transcrição e Estruturação via Gemini** — converte fala em prontuários estruturados (Anamnese, Exame Físico, Diagnóstico, Prescrição).
-- 📁 **Gestão de Anexos** — upload seguro de laudos e imagens exclusivas por consulta.
-- 🎨 **Templates de Sistema e Próprios** — modelos de prontuário selecionáveis que persistem na conta do usuário.
-- 💬 **Resumo para o Tutor** — gera versões em linguagem acessível automaticamente.
-- ⚡ **Timeline Clínica** — biografia médica completa do paciente com visualização cronológica inteligente.
+**Romero Santos Saraiva** — `armitagethird`  
+Desenvolvedor focando em empacotar IA de ponta para aplicações médicas que impactam a vida real.
 
----
-
-## 🛠️ Stack Tecnológica
-
-### Frontend & App
-- **Next.js 14** (App Router)
-- **Tailwind CSS** & **shadcn/ui**
-- **Framer Motion** (animações fluidas e premium)
-
-### Backend & Inteligência
-- **Supabase** (PostgreSQL, Auth, Storage)
-- **Google Gemini 2.5 Flash-Lite** (IA multimodal nativa)
-- **Vercel** (Edge Computing)
+- 🌐 [Portfolio Local](https://romerosaraiva.com)
+- 💼 [LinkedIn](https://linkedin.com/in/romero-saraiva)
+- 💾 [GitHub/armitagethird](https://github.com/armitagethird)
 
 ---
 
-## 🏗️ Arquitetura Técnica
-
-```mermaid
-graph TD
-    User((Veterinário)) --> WebApp[Next.js App]
-    WebApp --> Auth[Supabase Auth]
-    WebApp --> API[Next.js API Routes]
-    API --> Gemini[Google Gemini AI]
-    API --> DB[(PostgreSQL + RLS)]
-    API --> Storage[Private Storage + Signed URLs]
-```
-
----
-
-## 🏃 Rodando localmente
-
-1. **Clone e Instale:**
-   ```bash
-   git clone https://github.com/armitagethird/ProntuVet.git
-   npm install
-   ```
-
-2. **Configure o `.env.local`:**
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=...
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-   GEMINI_API_KEY=...
-   GEMINI_MODEL=gemini-2.5-flash-lite
-   ```
-
-
-3. **Inicie:**
-   ```bash
-   npm run dev
-   ```
-
----
-
-## 👨‍💻 Sobre o autor
-
-**Romero Santos Saraiva** — `armitagethird`
-Desenvolvedor focado em produtos com IA aplicada a problemas reais.
-
-- [Portfolio](https://romerosaraiva.com)
-- [LinkedIn](https://linkedin.com/in/romero-saraiva)
-- [GitHub](https://github.com/armitagethird)
-
----
-
-## 📄 Licença
-
-**MIT License** — livre para estudo, adaptação e contribuição.
+<div align="center">
+<i>A medicina cuida da vida. A inteligência cuida da medicina.</i>
+</div>

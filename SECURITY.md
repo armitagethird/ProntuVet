@@ -28,5 +28,12 @@ Este arquivo serve como um guia vivo para garantir que novas funcionalidades do 
     - O bucket `medical-attachments` é **estritamente privado** e configurado com RLS que isola os dados por `auth.uid()`.
 - [x] **RLS Mandatório**: Todas as tabelas no esquema `public` possuem Row Level Security (RLS) habilitado.
 
+## 🔐 Autenticação Zero-Trust & Stack Estável (Core do Sistema)
+- [x] **Middleware Global**: O arquivo de proteção principal **SEMPRE** deve residir na raiz do diretório `src/middleware.ts` para que o Next.js intercepte nativamente requisições a rotas privadas.
+- [x] **Compatibilidade de Criptografia Base JWT (ES256 Bug)**: Para evitar o bug fatal de incompatibilidade local de assinaturas assimétricas `ES256` nos runtimes serverless Edge da Vercel e Deno, o ecossistema do ProntuVet deve **Obrigatoriamente Repousar nas Versões**:
+    - `@supabase/supabase-js: ^2.45.6`
+    - `@supabase/ssr: ^0.4.0`
+- [x] **Framework Confiável**: Evite "Release Candidates" instáveis (como React 19 ou Next 15 com seu Turbopack não validado em nossa infra). A fundação do sistema foi cravada à solidez da stack Gold LTS: **Next.js 14.2.16** e **React 18.3.1**. Mantenha dessa forma para prevenir lentidões extremas em Dev ou crashes misteriosos em Produção.
+
 ---
 *Última atualização: 2026-04-06*

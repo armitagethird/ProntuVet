@@ -35,7 +35,7 @@ const cards: CardData[] = [
         id: 'performance',
         title: '70% Mais Rápido',
         description: 'Reduza drasticamente o tempo de documentação.',
-        longDescription: 'Economize em média 15 minutos por atendimento. No final de um dia com 10 consultas, você ganha 2,5 horas livres para descansar, estudar ou atender mais casos, aumentando seu faturamento sem aumentar o estresse.',
+        longDescription: 'Economize em média 15 minutos por atendimento. No final de um dia com 15 consultas, você ganha quase 4 horas livres para descansar, estudar ou atender mais casos, aumentando seu faturamento sem aumentar o estresse.',
         icon: Clock,
         color: 'bg-green-500/20',
         accentColor: 'text-green-300'
@@ -60,8 +60,8 @@ const cards: CardData[] = [
     }
 ];
 
-export default function LoginPage(props: { searchParams: Promise<{ error?: string }> }) {
-    const searchParams = React.use(props.searchParams);
+export default function LoginPage(props: { searchParams: { error?: string } }) {
+    const searchParams = props.searchParams;
     const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
 
     return (

@@ -20,9 +20,9 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
     const [usage, setUsage] = useState({ daily: 0, monthly: 0, loading: true })
 
     const limits = {
-        free: { daily: 10, monthly: 10 },
+        free: { daily: 15, monthly: 20 },
         platinum: { daily: 20, monthly: 200 }
-    }[plano] || { daily: 10, monthly: 10 };
+    }[plano] || { daily: 15, monthly: 20 };
 
     useEffect(() => {
         const fetchUsage = async () => {
@@ -384,26 +384,32 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
 
                 {/* UPGRADE CARD */}
                 {plano === 'free' && (
-                  <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-teal-500 to-teal-600 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-teal-500/30 group">
+                  <div className="md:col-span-2 relative overflow-hidden bg-gradient-to-br from-slate-200 via-white to-slate-200 rounded-[2.5rem] p-8 text-slate-900 border border-slate-300/50 shadow-2xl shadow-slate-400/20 group animate-in fade-in slide-in-from-bottom-4 duration-700">
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                      <Zap className="w-32 h-32" />
+                      <Zap className="w-32 h-32 text-slate-400 fill-current" />
                     </div>
                     
                     <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="text-center md:text-left space-y-2">
-                        <h3 className="text-2xl font-black tracking-tight">Quer mais consultas?</h3>
-                        <p className="text-teal-50/80 max-w-md font-medium">
-                          Assine o Platinum e tenha 200 consultas/mês, histórico completo, exportação PDF e muito mais.
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900/5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
+                           Oferta Premium
+                        </div>
+                        <h3 className="text-3xl font-black tracking-tight text-slate-900">Elevando sua Prática</h3>
+                        <p className="text-slate-600 max-w-md font-medium">
+                          O selo <strong>Platinum</strong> garante 200 consultas/mês, modelos ilimitados e o poder máximo da IA veterinária.
                         </p>
                       </div>
                       
                       <Link href="/assinatura" className="w-full md:w-auto">
-                        <Button className="w-full bg-white text-teal-600 hover:bg-teal-50 font-bold px-8 py-6 rounded-2xl shadow-lg transition-all hover:scale-105 group/btn">
-                          Fazer upgrade 
+                        <Button className="w-full bg-slate-900 text-white hover:bg-slate-800 font-bold px-8 py-7 rounded-2xl shadow-xl shadow-slate-900/20 transition-all hover:scale-105 group/btn">
+                          Assinar Platinum Agora
                           <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                         </Button>
                       </Link>
                     </div>
+
+                    {/* Subtle metallic shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
                   </div>
                 )}
 

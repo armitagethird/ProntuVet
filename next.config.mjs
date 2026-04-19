@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -25,9 +24,16 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'framer-motion', 'sonner'],
-    // ppr: 'incremental' isdeprecated in your version, let's use the new architecture
-    // for high speed shells or disable if environment is unstable.
+    serverComponentsExternalPackages: ['@supabase/ssr'],
+    optimizePackageImports: [
+      'lucide-react', 
+      'framer-motion', 
+      'sonner', 
+      '@radix-ui/react-slot',
+      '@radix-ui/react-dialog',
+      'clsx',
+      'tailwind-merge'
+    ],
   },
 };
 

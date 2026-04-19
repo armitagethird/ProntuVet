@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.47.1'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 import { GoogleGenerativeAI, SchemaType } from 'https://esm.sh/@google/generative-ai@0.21.0'
 
 const corsHeaders = {
@@ -19,18 +19,27 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Autenticação do Usuário
+    // 1. Autenticação do Usuário (Bypass do bug ES256 via Fetch Direto)
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) return new Response(JSON.stringify({ error: 'Não autorizado' }), { status: 401, headers: corsHeaders })
 
     const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: corsHeaders })
+    const authRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': supabaseServiceKey,
+      }
+    })
+    
+    if (!authRes.ok) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: corsHeaders })
+    const user = await authRes.json()
+    if (!user || !user.id) return new Response(JSON.stringify({ error: 'Token inválido' }), { status: 401, headers: corsHeaders })
 
     // 2. Buscar Perfil (Status e Plano)
     const { data: profile } = await supabase.from('profiles').select('status, plano').eq('id', user.id).single()
     
-    if (!profile || profile.status === 'bloqueado' || profile.status === 'cancelado') {
+    if (!profile || profile.status === 'bloqueado') {
       return new Response(JSON.stringify({ error: 'Sua assinatura está inativa ou bloqueada.' }), { status: 403, headers: corsHeaders })
     }
 
@@ -39,7 +48,7 @@ Deno.serve(async (req) => {
 
     // 3. Configuração de Limites por Plano
     const limitsConfig: Record<PlanoType, { monthly: number; daily: number; hourly: number }> = {
-      free: { monthly: 10, daily: 10, hourly: 5 },
+      free: { monthly: 20, daily: 15, hourly: 5 },
       platinum: { monthly: 200, daily: 20, hourly: 25 }
     }
     const limits = limitsConfig[plano] || limitsConfig.free

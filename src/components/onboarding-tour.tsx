@@ -11,6 +11,7 @@ export function OnboardingTour() {
   const pathname = usePathname()
   const driverRef = useRef<any>(null)
   const isRunning = useRef(false)
+  const isChecking = useRef(false)
 
   const startTour = async () => {
     // Prevent multiple instances if logic triggers twice
@@ -101,15 +102,19 @@ export function OnboardingTour() {
       return
     }
 
-    const checkAndStartTour = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      // If user exists and hasn't seen the tutorial (or metadata is not set yet)
-      const hasSeen = user?.user_metadata?.has_seen_tutorial
-      
-      console.log("OnboardingTour: Checking user state...", { hasSeen, userId: user?.id })
+    const checkAndStartTour = async (providedUser?: any) => {
+      if (isChecking.current) return
+      isChecking.current = true
 
-      if (user && !hasSeen) {
+      try {
+        const user = providedUser || (await supabase.auth.getUser()).data.user
+        
+        // If user exists and hasn't seen the tutorial (or metadata is not set yet)
+        const hasSeen = user?.user_metadata?.has_seen_tutorial
+        
+        console.log("OnboardingTour: Checking user state...", { hasSeen, userId: user?.id })
+
+        if (user && !hasSeen) {
         // Wait for elements to be stable in the DOM
         let attempts = 0
         const interval = setInterval(() => {
@@ -125,17 +130,20 @@ export function OnboardingTour() {
           }
           attempts++
         }, 500)
+        }
+      } finally {
+        isChecking.current = false
       }
     }
 
-    // 2. Immediate check on mount or when pathname changes to /dashboard
-    checkAndStartTour()
+    // 2. Immediate check is handled by the INITIAL_SESSION event in onAuthStateChange below.
+    // This avoids concurrent getUser() calls that cause the lock "stolen" error.
 
     // 3. Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("OnboardingTour: Auth Event:", event)
       if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        checkAndStartTour()
+        checkAndStartTour(session?.user)
       }
     })
 

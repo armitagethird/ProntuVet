@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dog, Cat, Bird, Fish, Rabbit, FileText, Calendar, Search, Tag as TagIcon, LayoutList, PawPrint, History as HistoryIcon, Loader2 } from 'lucide-react'
+import { Dog, Cat, Bird, Fish, Rabbit, FileText, Calendar, Search, Tag as TagIcon, LayoutList, PawPrint, History as HistoryIcon, Loader2, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -160,37 +160,37 @@ export function HistoryList({ initialData }: { initialData: Consultation[] }) {
             {/* Search and Filters */}
             <div className="flex flex-col gap-6 bg-card/40 border border-border/50 rounded-2xl p-4 sm:p-6 backdrop-blur-sm shadow-sm">
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                    <div className="relative w-full sm:max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                        <Input
-                            value={searchQuery}
-                            onChange={(e) => {
-                                setSearchQuery(e.target.value)
-                                if (e.target.value === '') setIsAIActive(false)
-                            }}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
-                            placeholder={isAIActive ? "Busca IA ativa..." : "Buscar por animal, tutor, tag..."}
-                            className={`pl-10 pr-24 h-12 bg-background/80 rounded-full border-border/60 focus-visible:ring-teal-500 shadow-sm transition-all ${isAIActive ? 'border-teal-500/50 bg-teal-500/5 ring-1 ring-teal-500/30' : ''}`}
-                        />
-                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                            {isAIActive && (
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={clearSearch}
-                                    className="h-9 px-3 rounded-full text-muted-foreground hover:text-foreground"
-                                >
-                                    Limpar
-                                </Button>
-                            )}
-                            <Button 
-                                size="sm" 
-                                onClick={handleAISearch}
-                                disabled={isAISearching || !searchQuery}
-                                className="h-9 px-4 rounded-full bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white shadow-md shadow-teal-500/20 transition-all hover:scale-105"
-                            >
-                                {isAISearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>✨ Buscar IA</span>}
-                            </Button>
+                    <div className="flex flex-1 w-full sm:max-w-xl">
+                        <div className={`relative flex-1 rounded-full transition-all ${isAISearching ? 'animate-rgb-euphoric' : 'animate-rgb-pulse'}`}>
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                            <Input
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value)
+                                    if (e.target.value === '') setIsAIActive(false)
+                                }}
+                                onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
+                                placeholder={isAIActive ? "Busca inteligente ativa..." : "Buscar por animal, tutor..."}
+                                className={`pl-10 pr-12 h-12 bg-background/80 rounded-full border-border/60 focus-visible:ring-teal-500 shadow-sm transition-all ${isAIActive ? 'border-teal-500/50 bg-teal-500/5 ring-1 ring-teal-500/30' : ''}`}
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                {isAIActive && !isAISearching && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={clearSearch}
+                                        className="h-8 px-2 rounded-full text-muted-foreground hover:text-foreground text-xs"
+                                    >
+                                        Limpar
+                                    </Button>
+                                )}
+                                {isAISearching && (
+                                    <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
+                                )}
+                                {!isAIActive && !isAISearching && (
+                                    <Zap className="w-4 h-4 text-teal-500/40" />
+                                )}
+                            </div>
                         </div>
                     </div>
 

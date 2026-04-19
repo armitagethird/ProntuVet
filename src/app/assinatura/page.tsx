@@ -18,7 +18,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const freeFeatures = [
-  '10 consultas/mês',
+  '20 consultas/mês',
   '1 template padrão',
   'Histórico de 30 dias',
 ]

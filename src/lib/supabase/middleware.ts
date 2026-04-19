@@ -27,13 +27,62 @@ export async function updateSession(request: NextRequest) {
         }
     )
 
+    const logToAdmin = async (type: string, message: string, details: any, source: string) => {
+        try {
+            await fetch(request.nextUrl.origin + '/api/logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, message, details, source })
+            })
+        } catch (e) {}
+    }
+
+    // [DEBUG LOGGING] Interceptador para a Middleware (Edge Runtime)
+    const originalGetUser = supabase.auth.getUser.bind(supabase.auth)
+    supabase.auth.getUser = async (jwt?: string) => {
+        try {
+            const result = await originalGetUser(jwt)
+            if (result.error && result.error.message !== 'Auth session missing!') {
+                console.error('\n🔴 [SUPABASE MIDDLEWARE ERROR RETORNADO] auth.getUser()')
+                console.error('Mensagem:', result.error.message)
+                console.error('Completo:', JSON.stringify(result.error, null, 2))
+                await logToAdmin('ERROR', '[MIDDLEWARE] auth.getUser() Error', result.error, 'middleware.ts')
+            }
+            return result
+        } catch (error: any) {
+            console.error('\n🔴 [SUPABASE MIDDLEWARE CRASH] Exceção em auth.getUser()')
+            console.error('Detalhes:', error)
+            await logToAdmin('ERROR', '[MIDDLEWARE] auth.getUser() Fatal Crash', error?.stack || error, 'middleware.ts')
+            return { data: { user: null }, error }
+        }
+    }
+
+    const originalGetSession = supabase.auth.getSession.bind(supabase.auth)
+    supabase.auth.getSession = async () => {
+        try {
+            const result = await originalGetSession()
+            if (result.error && result.error.message !== 'Auth session missing!') {
+                console.error('\n🔴 [SUPABASE MIDDLEWARE ERROR RETORNADO] auth.getSession()')
+                console.error('Mensagem:', result.error.message)
+                console.error('Completo:', JSON.stringify(result.error, null, 2))
+                await logToAdmin('ERROR', '[MIDDLEWARE] auth.getSession() Error', result.error, 'middleware.ts')
+            }
+            return result
+        } catch (error: any) {
+            console.error('\n🔴 [SUPABASE MIDDLEWARE CRASH] Exceção em auth.getSession()')
+            console.error('Detalhes:', error)
+            await logToAdmin('ERROR', '[MIDDLEWARE] auth.getSession() Fatal Crash', error?.stack || error, 'middleware.ts')
+            return { data: { session: null }, error }
+        }
+    }
+
     // Do not run code between createServerClient and
     // supabase.auth.getUser(). A simple mistake could make it very hard to debug
     // issues with users being randomly logged out.
 
-    // IMPORTANT: DO NOT use supabase.auth.getSession() here!
-    // It is only recommended for Client Components.
-    // We use getUser() to securely validate the session token.
+    // HIGH PERFORMANCE: For middleware-level navigation redirects, we use getUser()
+    // to strictly fetch from the network/API and avoid fatal Edge Cryptography (jose)
+    // bugs associated with local ES256 asymmetric signature parsing.
     const {
         data: { user },
     } = await supabase.auth.getUser()

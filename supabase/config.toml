@@ -1,0 +1,17 @@
+# Supabase CLI configuration
+# https://supabase.com/docs/guides/cli/config
+
+project_id = "prontuvet"
+
+[functions.process-consultation]
+# Kong API Gateway must not pre-validate the user JWT.
+# The function authenticates the caller itself by forwarding the bearer token to
+# `${SUPABASE_URL}/auth/v1/user`, which correctly handles ES256-signed JWTs.
+# Pre-validation in Kong blocks the request before the function runs with the
+# error "Unsupported JWT algorithm ES256".
+verify_jwt = false
+
+[functions.asaas-webhook]
+# Asaas posts server-to-server and does not send a Supabase user JWT.
+# Integrity is enforced by the Asaas `asaas-access-token` header inside the function.
+verify_jwt = false

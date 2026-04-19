@@ -309,8 +309,8 @@ export function AudioRecorder({ templateId, templateName }: AudioRecorderProps) 
                     .gte('data_consulta', firstDayOfMonth.toISOString())
 
                 if (count === 1) {
-                    toast.success('Ótima consulta! Você tem 9 restantes no plano gratuito.')
-                } else if (count === 8) {
+                    toast.success('Ótima consulta! Você tem 19 restantes no plano gratuito.')
+                } else if (count === 18) {
                     toast.info('Atenção: apenas 2 consultas restantes este mês.', {
                         action: {
                             label: 'Upgrade',

@@ -62,3 +62,10 @@ next-env.d.ts
 ts_errors.txt
 build_error.txt
 lint-errors.txt
+
+# Antigravity/Claude logs and settings
+.claude/
+scratch/
+runtime-logs.json
+*.csv
+*.log
