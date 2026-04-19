@@ -19,11 +19,11 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { 
-    Save, Copy, Check, ArrowLeft, Loader2, FileText, 
-    CalendarCheck, FileEdit, Tag, Stethoscope, User,
+import {
+    Save, Copy, Check, ArrowLeft, Loader2, FileText,
+    CalendarCheck, FileEdit, Tag, Stethoscope,
     Trash2, AlertTriangle, History as HistoryIcon, ArrowRight,
-    Paperclip, Download, Activity, MoreVertical, Settings
+    Paperclip, Download, Activity, MoreVertical, Settings, Share2, Lock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -70,6 +70,8 @@ interface ConsultationData {
     manual_notes?: string
     tags?: string[]
     animals?: { name: string, species?: string }
+    tutor_token?: string
+    vet_display_name?: string
 }
 
 /** Entrada do histórico clínico de um animal — alinha com TimelineEvent */
@@ -114,6 +116,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [animalName, setAnimalName] = useState(data.animals?.name || '')
     const [animalSpecies, setAnimalSpecies] = useState(data.animals?.species || '')
     const [tutorName, setTutorName] = useState(data.tutor_name || '')
+    const [vetDisplayName, setVetDisplayName] = useState(data.vet_display_name || '')
 
     // History and Matching States
     const [history, setHistory] = useState<HistoryEntry[]>([])
@@ -122,6 +125,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [isDeleting, setIsDeleting] = useState(false)
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
     const [userId, setUserId] = useState<string | null>(null)
+    const [plano, setPlano] = useState<string>('free')
     const [refreshAttachments, setRefreshAttachments] = useState(0)
     const [isMounted, setIsMounted] = useState(false)
     const [PDFComponents, setPDFComponents] = useState<PDFLib | null>(null)
@@ -133,28 +137,40 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
 
     useEffect(() => {
         setIsMounted(true)
-        
-        // Asynchronously load PDF libraries only on the client
+
         const loadPDF = async () => {
             try {
                 const renderer = await import('@react-pdf/renderer')
                 const report = await import('./pdf-report')
-                setPDFComponents({ 
-                    Link: renderer.PDFDownloadLink, 
-                    Report: report.PDFReport 
+                setPDFComponents({
+                    Link: renderer.PDFDownloadLink,
+                    Report: report.PDFReport
                 })
             } catch (err) {
                 console.error("PDF Load Error", err)
             }
         }
         loadPDF()
-        
-        const getUserId = async () => {
+
+        const loadUserInfo = async () => {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
-            if (user) setUserId(user.id)
+            if (!user) return
+            setUserId(user.id)
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('plano, first_name, last_name')
+                .eq('id', user.id)
+                .single()
+            if (profile?.plano) setPlano(profile.plano)
+
+            // Pré-preenche assinatura do ProntuLink com "Dr(a). Nome Sobrenome" se ainda vazia
+            if (!data.vet_display_name) {
+                const nome = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ').trim()
+                if (nome) setVetDisplayName(`Dr(a). ${nome}`)
+            }
         }
-        getUserId()
+        loadUserInfo()
     }, [])
 
     // Active Identity Guard: Seach for duplicates as user types
@@ -348,6 +364,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                     animal_name: animalName,
                     animal_species: animalSpecies,
                     tutor_name: tutorName,
+                    vet_display_name: vetDisplayName,
                     title: `Consulta: ${animalName || 'Animal'}`
                 }),
             })
@@ -441,6 +458,53 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                         ) : (
                             <><Copy className="w-4 h-4" /> Copiar Dados</>
                         )}
+                    </Button>
+
+                    {/* ProntuLink — ação direta: copia link + ação secundária WhatsApp no toast */}
+                    <Button
+                        variant="outline"
+                        onClick={async () => {
+                            if (plano !== 'platinum' && plano !== 'clinica') {
+                                toast.info('ProntuLink é um recurso do plano Platinum.', {
+                                    description: 'Faça upgrade para compartilhar prontuários com tutores.',
+                                    action: { label: 'Ver planos', onClick: () => router.push('/assinatura') }
+                                })
+                                return
+                            }
+                            if (!data.tutor_token) {
+                                toast.error('Link indisponível. Salve o prontuário e recarregue a página.')
+                                return
+                            }
+                            const base = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+                            const link = `${base}/acompanhe/${data.tutor_token}`
+                            try {
+                                await navigator.clipboard.writeText(link)
+                                toast.success('ProntuLink copiado!', {
+                                    description: 'Pronto para colar no WhatsApp do tutor.',
+                                    action: {
+                                        label: 'Abrir WhatsApp',
+                                        onClick: () => {
+                                            const msg = encodeURIComponent(`Olá! Segue o prontuário da consulta de ${animalName}: ${link}`)
+                                            window.open(`https://wa.me/?text=${msg}`, '_blank', 'noopener,noreferrer')
+                                        }
+                                    }
+                                })
+                            } catch {
+                                toast.error('Erro ao copiar o link.')
+                            }
+                        }}
+                        className={`rounded-full shadow-sm gap-2 transition-all ${
+                            plano === 'platinum' || plano === 'clinica'
+                                ? 'border-teal-500/30 text-teal-600 hover:bg-teal-500/10 hover:border-teal-500'
+                                : 'opacity-70'
+                        }`}
+                    >
+                        {plano === 'platinum' || plano === 'clinica' ? (
+                            <Share2 className="w-4 h-4" />
+                        ) : (
+                            <Lock className="w-4 h-4" />
+                        )}
+                        ProntuLink
                     </Button>
 
                     <DropdownMenu>
@@ -670,7 +734,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                 <h2 className="text-xl font-bold flex items-center gap-2 text-teal-600">
                                     {activeTab === 'prontuario' && <><FileText className="w-5 h-5" /> Prontuário</>}
                                     {activeTab === 'vet' && <><Stethoscope className="w-5 h-5" /> Resumo Clínico</>}
-                                    {activeTab === 'tutor' && <><User className="w-5 h-5" /> Resumo Tutor</>}
+                                    {activeTab === 'prontulink' && <><Share2 className="w-5 h-5" /> Personalizar ProntuLink</>}
                                     {activeTab === 'history' && <><HistoryIcon className="w-5 h-5" /> Histórico</>}
                                     {activeTab === 'timeline' && <><Activity className="w-5 h-5" /> Trilha Clínica</>}
                                     {activeTab === 'attachments' && <><Paperclip className="w-5 h-5" /> Anexos</>}
@@ -700,7 +764,7 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                             {[
                                                 { id: 'prontuario', label: 'Prontuário', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                                                 { id: 'vet', label: 'Resumo Clínico', icon: Stethoscope, color: 'text-teal-500', bg: 'bg-teal-500/10' },
-                                                { id: 'tutor', label: 'Resumo Tutor', icon: User, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+                                                { id: 'prontulink', label: 'ProntuLink', icon: Share2, color: 'text-purple-500', bg: 'bg-purple-500/10' },
                                                 { id: 'timeline', label: 'Trilha Clínica', icon: Activity, color: 'text-orange-500', bg: 'bg-orange-500/10' },
                                                 { id: 'attachments', label: 'Anexos', icon: Paperclip, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
                                                 { id: 'history', label: 'Histórico', icon: HistoryIcon, color: 'text-slate-500', bg: 'bg-slate-500/10' },
@@ -816,21 +880,68 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                 </div>
                             </TabsContent>
 
-                            <TabsContent value="tutor" className="mt-0">
-                                <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm">
-                                    <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                                        <User className="w-5 h-5 text-teal-500" /> Resumo para o Tutor (Amigável)
-                                    </h3>
+                            <TabsContent value="prontulink" className="mt-0">
+                                <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-4">
+                                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+                                                <Share2 className="w-5 h-5 text-teal-500" /> Personalizar ProntuLink
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                                                Escreva exatamente o que o tutor verá no link compartilhado. Nada mais do prontuário é exposto — você tem controle total.
+                                            </p>
+                                        </div>
+                                        {data.tutor_token && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    const base = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+                                                    window.open(`${base}/acompanhe/${data.tutor_token}`, '_blank', 'noopener,noreferrer')
+                                                }}
+                                                className="rounded-full gap-2 shrink-0"
+                                            >
+                                                <Share2 className="w-4 h-4" /> Pré-visualizar
+                                            </Button>
+                                        )}
+                                    </div>
+
                                     {isEditing ? (
-                                        <Textarea
-                                            value={tutorSummary}
-                                            onChange={(e) => setTutorSummary(e.target.value)}
-                                            className="min-h-[200px] text-base bg-background focus-visible:ring-teal-500 rounded-xl leading-relaxed"
-                                            placeholder="Resumo com linguagem clara, direta e empática..."
-                                        />
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assinatura (nome do veterinário)</label>
+                                                <input
+                                                    type="text"
+                                                    value={vetDisplayName}
+                                                    onChange={(e) => setVetDisplayName(e.target.value)}
+                                                    placeholder="Ex: Dr(a). Ana Souza"
+                                                    maxLength={120}
+                                                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                                />
+                                                <p className="text-[11px] text-muted-foreground mt-1">
+                                                    Aparece no cabeçalho do link. Em clínicas, ajuste para o profissional que atendeu.
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem para o tutor</label>
+                                                <Textarea
+                                                    value={tutorSummary}
+                                                    onChange={(e) => setTutorSummary(e.target.value)}
+                                                    className="mt-1 min-h-[260px] text-base bg-background focus-visible:ring-teal-500 rounded-xl leading-relaxed"
+                                                    placeholder={`Olá, ${tutorName || '[tutor]'}!\n\nSegue o resumo da consulta de ${animalName || '[paciente]'}:\n\n• Diagnóstico: ...\n• Medicação: ...\n• Próximos passos: ...\n\nQualquer dúvida, estou à disposição.`}
+                                                />
+                                            </div>
+                                        </div>
                                     ) : (
-                                        <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium pt-2">
-                                            {tutorSummary || <span className="text-muted-foreground italic">Resumo não gerado ou vazio.</span>}
+                                        <div className="space-y-3 pt-2">
+                                            {vetDisplayName && (
+                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-sm font-medium text-teal-700 dark:text-teal-400">
+                                                    <Stethoscope className="w-3.5 h-3.5" /> {vetDisplayName}
+                                                </div>
+                                            )}
+                                            <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium min-h-[120px]">
+                                                {tutorSummary || <span className="text-muted-foreground italic">Nenhum conteúdo personalizado. Clique em "Editar Prontuário" para escrever o que o tutor verá.</span>}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

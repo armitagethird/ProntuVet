@@ -69,6 +69,7 @@ export async function PATCH(
             animal_name: z.string().max(100).optional(),
             animal_species: z.string().max(50).optional(),
             tutor_name: z.string().max(100).optional(),
+            vet_display_name: z.string().max(120).optional(),
             title: z.string().max(200).optional(),
         }).refine(data => Object.keys(data).length > 0, {
             message: "Nenhum dado para atualizar enviado"
@@ -79,7 +80,7 @@ export async function PATCH(
             return NextResponse.json({ error: bodyValidation.error.issues[0].message }, { status: 400 })
         }
 
-        const { structured_content, tutor_summary, vet_summary, manual_notes, animal_name, animal_species, tutor_name } = bodyValidation.data
+        const { structured_content, tutor_summary, vet_summary, manual_notes, animal_name, animal_species, tutor_name, vet_display_name } = bodyValidation.data
 
         // 1. Fetch current consultation to get animal_id
         const { data: currentConsultation } = await supabase
@@ -94,6 +95,7 @@ export async function PATCH(
             vet_summary: string
             manual_notes: string
             tutor_name: string
+            vet_display_name: string
             title: string
             animal_id: string | null
         }> = {}
@@ -102,6 +104,7 @@ export async function PATCH(
         if (vet_summary !== undefined) updateData.vet_summary = vet_summary;
         if (manual_notes !== undefined) updateData.manual_notes = manual_notes;
         if (tutor_name !== undefined) updateData.tutor_name = tutor_name;
+        if (vet_display_name !== undefined) updateData.vet_display_name = vet_display_name;
         if (body.title !== undefined) updateData.title = body.title;
 
         // Handle case where user edits the animal name/species

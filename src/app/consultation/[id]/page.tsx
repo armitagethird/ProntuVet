@@ -6,16 +6,9 @@ export default async function ConsultationDetailsPage(props: { params: Promise<{
     const params = await props.params;
     const supabase = await createClient()
 
-    // Fetch consultation with animal details included
     const { data, error } = await supabase
         .from('consultations')
-        .select(`
-            *,
-            animals (
-                name,
-                species
-            )
-        `)
+        .select(`*, animals (name, species)`)
         .eq('id', params.id)
         .single()
 
@@ -28,15 +21,13 @@ export default async function ConsultationDetailsPage(props: { params: Promise<{
         try {
             parsedStructuredContent = JSON.parse(parsedStructuredContent);
         } catch (e) {
-            // Fallback for when content is plain text instead of stringified JSON
             parsedStructuredContent = { "Conteúdo Clínico": parsedStructuredContent };
         }
     }
 
-    // Convert empty/JSON formatted object properly
     const safeData = {
         ...data,
-        structured_content: parsedStructuredContent
+        structured_content: parsedStructuredContent,
     }
 
     return (
