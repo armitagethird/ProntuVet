@@ -23,7 +23,8 @@ import {
     Save, Copy, Check, ArrowLeft, Loader2, FileText,
     CalendarCheck, FileEdit, Tag, Stethoscope,
     Trash2, AlertTriangle, History as HistoryIcon, ArrowRight,
-    Paperclip, Download, Activity, MoreVertical, Settings, Share2, Lock
+    Paperclip, Download, Activity, MoreVertical, Settings, Share2, Lock,
+    Building2, Camera, Plus, Pill, Microscope, MessageSquare, X, UploadCloud, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -51,11 +52,40 @@ import { useEffect, useRef } from 'react'
 import { AttachmentZone } from './attachments/attachment-zone'
 import { AttachmentList } from './attachments/attachment-list'
 import { createClient } from '@/lib/supabase/client'
+import { uploadAttachment } from '@/lib/storage-client'
 import dynamic from 'next/dynamic'
 import { TimelineView } from './timeline-view'
 
 // Note: PDF library is loaded inside the component's useEffect to avoid SSR/Hydration issues
 // specifically related to dynamic() which can cause 'su is not a function' in React 19.
+
+interface Medicacao {
+    nome: string
+    dose: string
+    frequencia: string
+    duracao: string
+    observacoes: string
+}
+
+interface AnexoPL {
+    nome: string
+    storage_path: string
+    tamanho_bytes: number
+    tipo_mime: string
+}
+
+type SessionTipo = 'mensagem' | 'medicacao' | 'exame' | 'anexo'
+
+interface ProntuLinkSession {
+    id: string
+    tipo: SessionTipo
+    titulo: string
+    conteudo?: string
+    resultado?: string
+    medicacoes?: Medicacao[]
+    anexos?: AnexoPL[]
+    criado_em: string
+}
 
 interface ConsultationData {
     id: string
@@ -71,7 +101,11 @@ interface ConsultationData {
     tags?: string[]
     animals?: { name: string, species?: string }
     tutor_token?: string
+    tutor_token_expires_at?: string
     vet_display_name?: string
+    prontulink_clinic_name?: string
+    prontulink_animal_photo_url?: string
+    prontulink_sessions?: ProntuLinkSession[]
 }
 
 /** Entrada do histórico clínico de um animal — alinha com TimelineEvent */
@@ -113,7 +147,14 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [manualNotes, setManualNotes] = useState(data.manual_notes || '')
 
     // New states for header editing
-    const [animalName, setAnimalName] = useState(data.animals?.name || '')
+    // Fallback: extrai nome do título "Consulta: Thor" para consultas sem animal_id vinculado
+    const nameFromTitle = (() => {
+        const m = (data.title || '').match(/^Consulta:\s*(.+)$/i)
+        if (!m) return ''
+        const n = m[1].trim()
+        return n.toLowerCase() === 'animal' ? '' : n
+    })()
+    const [animalName, setAnimalName] = useState(data.animals?.name || nameFromTitle || '')
     const [animalSpecies, setAnimalSpecies] = useState(data.animals?.species || '')
     const [tutorName, setTutorName] = useState(data.tutor_name || '')
     const [vetDisplayName, setVetDisplayName] = useState(data.vet_display_name || '')
@@ -134,6 +175,16 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
     const [activeTab, setActiveTab] = useState('prontuario')
     const [isNavOpen, setIsNavOpen] = useState(false)
     const searchTimeoutRef = useRef<NodeJS.Timeout>(null)
+
+    // ProntuLink extra state
+    const [prontuLinkClinic, setProntuLinkClinic] = useState(data.prontulink_clinic_name || '')
+    const [prontuLinkPhotoUrl, setProntuLinkPhotoUrl] = useState(data.prontulink_animal_photo_url || '')
+    const [prontuLinkSessions, setProntuLinkSessions] = useState<ProntuLinkSession[]>(
+        Array.isArray(data.prontulink_sessions) ? (data.prontulink_sessions as ProntuLinkSession[]) : []
+    )
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+    const [uploadingSessionId, setUploadingSessionId] = useState<string | null>(null)
+    const photoInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         setIsMounted(true)
@@ -350,6 +401,118 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
         setContent(prev => ({ ...prev, [key]: value }))
     }
 
+    // ProntuLink session helpers
+    const addSession = (tipo: SessionTipo) => {
+        const newSession: ProntuLinkSession = {
+            id: crypto.randomUUID(),
+            tipo,
+            titulo: '',
+            criado_em: new Date().toISOString(),
+            ...(tipo === 'medicacao' ? { medicacoes: [] } : {}),
+            ...(tipo === 'anexo' ? { anexos: [] } : {}),
+        }
+        setProntuLinkSessions(prev => [...prev, newSession])
+    }
+
+    const removeSession = (sessionId: string) => {
+        setProntuLinkSessions(prev => prev.filter(s => s.id !== sessionId))
+    }
+
+    const updateSession = (sessionId: string, updates: Partial<ProntuLinkSession>) => {
+        setProntuLinkSessions(prev => prev.map(s => s.id === sessionId ? { ...s, ...updates } : s))
+    }
+
+    const updateSessionField = (sessionId: string, field: keyof ProntuLinkSession, value: unknown) => {
+        updateSession(sessionId, { [field]: value } as Partial<ProntuLinkSession>)
+    }
+
+    const addMedicacao = (sessionId: string) => {
+        const session = prontuLinkSessions.find(s => s.id === sessionId)
+        updateSession(sessionId, {
+            medicacoes: [...(session?.medicacoes || []), { nome: '', dose: '', frequencia: '', duracao: '', observacoes: '' }]
+        })
+    }
+
+    const removeMedicacao = (sessionId: string, idx: number) => {
+        const session = prontuLinkSessions.find(s => s.id === sessionId)
+        updateSession(sessionId, { medicacoes: (session?.medicacoes || []).filter((_, i) => i !== idx) })
+    }
+
+    const updateMedicacao = (sessionId: string, idx: number, field: keyof Medicacao, value: string) => {
+        const session = prontuLinkSessions.find(s => s.id === sessionId)
+        updateSession(sessionId, {
+            medicacoes: (session?.medicacoes || []).map((m, i) => i === idx ? { ...m, [field]: value } : m)
+        })
+    }
+
+    const removeAnexoSession = (sessionId: string, idx: number) => {
+        const session = prontuLinkSessions.find(s => s.id === sessionId)
+        updateSession(sessionId, { anexos: (session?.anexos || []).filter((_, i) => i !== idx) })
+    }
+
+    const handleAnimalPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !userId) return
+        if (!file.type.startsWith('image/')) {
+            toast.error('Apenas imagens são aceitas para a foto do animal.')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Imagem muito grande. Máximo de 5MB.')
+            return
+        }
+        setIsUploadingPhoto(true)
+        try {
+            const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+            const storagePath = `${userId}/prontulink/${data.id}/photo/${fileName}`
+            await uploadAttachment(file, storagePath)
+            setProntuLinkPhotoUrl(storagePath)
+            toast.success('Foto adicionada!')
+        } catch {
+            toast.error('Erro ao fazer upload da foto.')
+        } finally {
+            setIsUploadingPhoto(false)
+            if (photoInputRef.current) photoInputRef.current.value = ''
+        }
+    }
+
+    const handleSessionFileUpload = async (sessionId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !userId) return
+        const isImage = file.type.startsWith('image/')
+        const isPDF = file.type === 'application/pdf'
+        if (!isImage && !isPDF) {
+            toast.error('Formato não suportado. Use imagens ou PDF.')
+            return
+        }
+        const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024
+        if (file.size > maxSize) {
+            toast.error(`Arquivo muito grande. Máximo ${isImage ? '5MB' : '10MB'}.`)
+            return
+        }
+        setUploadingSessionId(sessionId)
+        try {
+            const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+            const storagePath = `${userId}/prontulink/${data.id}/sessions/${sessionId}/${fileName}`
+            await uploadAttachment(file, storagePath)
+            const session = prontuLinkSessions.find(s => s.id === sessionId)
+            updateSession(sessionId, {
+                anexos: [...(session?.anexos || []), {
+                    nome: file.name,
+                    storage_path: storagePath,
+                    tamanho_bytes: file.size,
+                    tipo_mime: file.type
+                }]
+            })
+            toast.success('Arquivo anexado!')
+        } catch {
+            toast.error('Erro ao fazer upload do arquivo.')
+        } finally {
+            setUploadingSessionId(null)
+            if (e.target) e.target.value = ''
+        }
+    }
+
     const handleSave = async () => {
         setIsSaving(true)
         try {
@@ -365,6 +528,9 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                     animal_species: animalSpecies,
                     tutor_name: tutorName,
                     vet_display_name: vetDisplayName,
+                    prontulink_clinic_name: prontuLinkClinic,
+                    prontulink_animal_photo_url: prontuLinkPhotoUrl,
+                    prontulink_sessions: prontuLinkSessions,
                     title: `Consulta: ${animalName || 'Animal'}`
                 }),
             })
@@ -881,14 +1047,15 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                             </TabsContent>
 
                             <TabsContent value="prontulink" className="mt-0">
-                                <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-4">
+                                <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-6">
+                                    {/* Header */}
                                     <div className="flex items-start justify-between gap-4 flex-wrap">
                                         <div>
                                             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                                                 <Share2 className="w-5 h-5 text-teal-500" /> Personalizar ProntuLink
                                             </h3>
                                             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
-                                                Escreva exatamente o que o tutor verá no link compartilhado. Nada mais do prontuário é exposto — você tem controle total.
+                                                Configure o que o tutor verá no link compartilhado. Todos os campos são opcionais e editáveis.
                                             </p>
                                         </div>
                                         {data.tutor_token && (
@@ -906,42 +1073,297 @@ export function ConsultationResult({ data }: { data: ConsultationData }) {
                                         )}
                                     </div>
 
-                                    {isEditing ? (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assinatura (nome do veterinário)</label>
-                                                <input
-                                                    type="text"
-                                                    value={vetDisplayName}
-                                                    onChange={(e) => setVetDisplayName(e.target.value)}
-                                                    placeholder="Ex: Dr(a). Ana Souza"
-                                                    maxLength={120}
-                                                    className="mt-1 w-full h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
-                                                />
-                                                <p className="text-[11px] text-muted-foreground mt-1">
-                                                    Aparece no cabeçalho do link. Em clínicas, ajuste para o profissional que atendeu.
-                                                </p>
+                                    {/* Link validity banner */}
+                                    {data.tutor_token_expires_at && (() => {
+                                        const daysLeft = Math.ceil((new Date(data.tutor_token_expires_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                                        return (
+                                            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm border ${daysLeft <= 5 ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400' : 'bg-muted/30 border-border/30 text-muted-foreground'}`}>
+                                                <Clock className="w-4 h-4 shrink-0" />
+                                                {daysLeft > 0
+                                                    ? `Link válido até ${new Date(data.tutor_token_expires_at!).toLocaleDateString('pt-BR')} · ${daysLeft} dia${daysLeft !== 1 ? 's' : ''} restante${daysLeft !== 1 ? 's' : ''}`
+                                                    : 'Link expirado'
+                                                }
                                             </div>
-                                            <div>
-                                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mensagem para o tutor</label>
+                                        )
+                                    })()}
+
+                                    {isEditing ? (
+                                        <div className="space-y-6">
+                                            {/* Identification */}
+                                            <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/30">
+                                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Identificação</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Clínica / Hospital</label>
+                                                        <div className="relative mt-1">
+                                                            <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                                            <input
+                                                                type="text"
+                                                                value={prontuLinkClinic}
+                                                                onChange={(e) => setProntuLinkClinic(e.target.value)}
+                                                                placeholder="Ex: Clínica VetCare (opcional)"
+                                                                maxLength={120}
+                                                                className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assinatura do Veterinário</label>
+                                                        <div className="relative mt-1">
+                                                            <Stethoscope className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                                            <input
+                                                                type="text"
+                                                                value={vetDisplayName}
+                                                                onChange={(e) => setVetDisplayName(e.target.value)}
+                                                                placeholder="Ex: Dr(a). Ana Souza (opcional)"
+                                                                maxLength={120}
+                                                                className="w-full h-10 rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                                            />
+                                                        </div>
+                                                        <p className="text-[11px] text-muted-foreground mt-1">Aparece no cabeçalho do link.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Animal Photo */}
+                                            <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/30">
+                                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                                    <Camera className="w-3.5 h-3.5" /> Foto do Animal
+                                                </h4>
+                                                <div className="flex items-center gap-4">
+                                                    {prontuLinkPhotoUrl ? (
+                                                        <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-border/60 shadow-sm shrink-0">
+                                                            <img
+                                                                src={`/api/prontulink-asset?token=${data.tutor_token}&path=${encodeURIComponent(prontuLinkPhotoUrl)}`}
+                                                                alt="Foto do animal"
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                            <button
+                                                                onClick={() => setProntuLinkPhotoUrl('')}
+                                                                className="absolute top-1 right-1 p-0.5 bg-red-500 text-white rounded-full shadow hover:bg-red-600 transition-colors"
+                                                            >
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-20 h-20 rounded-xl border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground shrink-0">
+                                                            <Camera className="w-8 h-8 opacity-40" />
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-1.5">
+                                                        <input
+                                                            ref={photoInputRef}
+                                                            type="file"
+                                                            accept="image/*"
+                                                            className="hidden"
+                                                            onChange={handleAnimalPhotoUpload}
+                                                            disabled={isUploadingPhoto}
+                                                        />
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => photoInputRef.current?.click()}
+                                                            disabled={isUploadingPhoto}
+                                                            className="rounded-full gap-2"
+                                                        >
+                                                            {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                                            {prontuLinkPhotoUrl ? 'Trocar Foto' : 'Adicionar Foto'}
+                                                        </Button>
+                                                        <p className="text-[11px] text-muted-foreground">JPG ou PNG · máx 5MB (opcional)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Message */}
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Mensagem para o Tutor</label>
                                                 <Textarea
                                                     value={tutorSummary}
                                                     onChange={(e) => setTutorSummary(e.target.value)}
-                                                    className="mt-1 min-h-[260px] text-base bg-background focus-visible:ring-teal-500 rounded-xl leading-relaxed"
-                                                    placeholder={`Olá, ${tutorName || '[tutor]'}!\n\nSegue o resumo da consulta de ${animalName || '[paciente]'}:\n\n• Diagnóstico: ...\n• Medicação: ...\n• Próximos passos: ...\n\nQualquer dúvida, estou à disposição.`}
+                                                    className="mt-1 min-h-[160px] text-base bg-background focus-visible:ring-teal-500 rounded-xl leading-relaxed"
+                                                    placeholder={`Olá, ${tutorName || '[tutor]'}!\n\nSegue o resumo da consulta de ${animalName || '[paciente]'}:\n\n• Diagnóstico: ...\n• Próximos passos: ...\n\nQualquer dúvida, estou à disposição.`}
                                                 />
+                                            </div>
+
+                                            {/* Sessions */}
+                                            <div className="space-y-3">
+                                                <div className="space-y-2">
+                                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Sessões Clínicas</h4>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addSession('mensagem')} className="rounded-full gap-1.5 h-8 text-xs">
+                                                            <MessageSquare className="w-3.5 h-3.5 text-teal-500" /> Mensagem
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addSession('medicacao')} className="rounded-full gap-1.5 h-8 text-xs">
+                                                            <Pill className="w-3.5 h-3.5 text-blue-500" /> Medicação
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addSession('exame')} className="rounded-full gap-1.5 h-8 text-xs">
+                                                            <Microscope className="w-3.5 h-3.5 text-purple-500" /> Exame
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => addSession('anexo')} className="rounded-full gap-1.5 h-8 text-xs">
+                                                            <Paperclip className="w-3.5 h-3.5 text-orange-500" /> Anexo
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {prontuLinkSessions.length === 0 ? (
+                                                    <p className="text-sm text-muted-foreground text-center py-6 italic bg-muted/20 rounded-xl border border-dashed border-border/40">
+                                                        Nenhuma sessão adicionada. Use "Adicionar" para incluir medicações, exames, mensagens ou anexos.
+                                                    </p>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {prontuLinkSessions.map((session) => (
+                                                            <div key={session.id} className="border border-border/60 rounded-xl overflow-hidden">
+                                                                <div className="flex items-center justify-between px-4 py-3 bg-muted/20">
+                                                                    <div className="flex items-center gap-2">
+                                                                        {session.tipo === 'mensagem' && <MessageSquare className="w-4 h-4 text-teal-500" />}
+                                                                        {session.tipo === 'medicacao' && <Pill className="w-4 h-4 text-blue-500" />}
+                                                                        {session.tipo === 'exame' && <Microscope className="w-4 h-4 text-purple-500" />}
+                                                                        {session.tipo === 'anexo' && <Paperclip className="w-4 h-4 text-orange-500" />}
+                                                                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                                                            {session.tipo === 'mensagem' && 'Mensagem'}
+                                                                            {session.tipo === 'medicacao' && 'Medicações'}
+                                                                            {session.tipo === 'exame' && 'Exame'}
+                                                                            {session.tipo === 'anexo' && 'Anexo'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => removeSession(session.id)}>
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </Button>
+                                                                </div>
+                                                                <div className="p-4 space-y-3">
+                                                                    <input
+                                                                        type="text"
+                                                                        value={session.titulo}
+                                                                        onChange={(e) => updateSessionField(session.id, 'titulo', e.target.value)}
+                                                                        placeholder="Título (opcional)"
+                                                                        className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                                                    />
+                                                                    {session.tipo === 'mensagem' && (
+                                                                        <Textarea
+                                                                            value={session.conteudo || ''}
+                                                                            onChange={(e) => updateSessionField(session.id, 'conteudo', e.target.value)}
+                                                                            placeholder="Escreva a mensagem..."
+                                                                            className="min-h-[100px] bg-background focus-visible:ring-teal-500 rounded-xl"
+                                                                        />
+                                                                    )}
+                                                                    {session.tipo === 'exame' && (
+                                                                        <div className="space-y-2">
+                                                                            <Textarea
+                                                                                value={session.conteudo || ''}
+                                                                                onChange={(e) => updateSessionField(session.id, 'conteudo', e.target.value)}
+                                                                                placeholder="Descrição do exame / Solicitação..."
+                                                                                className="min-h-[80px] bg-background focus-visible:ring-teal-500 rounded-xl"
+                                                                            />
+                                                                            <input
+                                                                                type="text"
+                                                                                value={session.resultado || ''}
+                                                                                onChange={(e) => updateSessionField(session.id, 'resultado', e.target.value)}
+                                                                                placeholder="Resultado / Interpretação (opcional)"
+                                                                                className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500"
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                    {session.tipo === 'medicacao' && (
+                                                                        <div className="space-y-2">
+                                                                            {(session.medicacoes || []).map((med, mi) => (
+                                                                                <div key={mi} className="p-3 bg-muted/30 rounded-lg border border-border/30 space-y-2">
+                                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                                        <input placeholder="Nome do medicamento *" value={med.nome} onChange={(e) => updateMedicacao(session.id, mi, 'nome', e.target.value)} className="sm:col-span-2 h-8 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                                                                                        <input placeholder="Dose (ex: 500mg)" value={med.dose} onChange={(e) => updateMedicacao(session.id, mi, 'dose', e.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                                                                                        <input placeholder="Frequência (ex: 2x ao dia)" value={med.frequencia} onChange={(e) => updateMedicacao(session.id, mi, 'frequencia', e.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                                                                                        <input placeholder="Duração (ex: 7 dias)" value={med.duracao} onChange={(e) => updateMedicacao(session.id, mi, 'duracao', e.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                                                                                        <input placeholder="Observações" value={med.observacoes} onChange={(e) => updateMedicacao(session.id, mi, 'observacoes', e.target.value)} className="sm:col-span-2 h-8 rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-teal-500" />
+                                                                                    </div>
+                                                                                    <button onClick={() => removeMedicacao(session.id, mi)} className="text-xs text-destructive hover:underline">Remover medicamento</button>
+                                                                                </div>
+                                                                            ))}
+                                                                            <Button variant="outline" size="sm" onClick={() => addMedicacao(session.id)} className="w-full rounded-lg gap-1.5 h-8">
+                                                                                <Plus className="w-3.5 h-3.5" /> Adicionar Medicamento
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                    {session.tipo === 'anexo' && (
+                                                                        <div className="space-y-2">
+                                                                            {(session.anexos || []).map((anexo, ai) => (
+                                                                                <div key={ai} className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg border border-border/30">
+                                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                                                                        <span className="text-sm truncate">{anexo.nome}</span>
+                                                                                        <span className="text-xs text-muted-foreground shrink-0">({Math.round(anexo.tamanho_bytes / 1024)}KB)</span>
+                                                                                    </div>
+                                                                                    <button onClick={() => removeAnexoSession(session.id, ai)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0 ml-2">
+                                                                                        <X className="w-4 h-4" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            ))}
+                                                                            <label
+                                                                                htmlFor={`session-file-${session.id}`}
+                                                                                className={`flex flex-col items-center gap-1.5 p-4 border-2 border-dashed border-border/60 rounded-xl cursor-pointer hover:border-teal-500/40 transition-colors ${uploadingSessionId === session.id ? 'opacity-50 pointer-events-none' : ''}`}
+                                                                            >
+                                                                                {uploadingSessionId === session.id ? <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" /> : <UploadCloud className="w-5 h-5 text-muted-foreground" />}
+                                                                                <p className="text-xs text-muted-foreground">Imagem (máx 5MB) ou PDF (máx 10MB)</p>
+                                                                            </label>
+                                                                            <input type="file" id={`session-file-${session.id}`} className="hidden" accept="image/*,application/pdf" onChange={(e) => handleSessionFileUpload(session.id, e)} disabled={!!uploadingSessionId} />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="space-y-3 pt-2">
-                                            {vetDisplayName && (
-                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-sm font-medium text-teal-700 dark:text-teal-400">
-                                                    <Stethoscope className="w-3.5 h-3.5" /> {vetDisplayName}
+                                        /* View Mode */
+                                        <div className="space-y-4 pt-2">
+                                            <div className="flex flex-wrap gap-2">
+                                                {prontuLinkClinic && (
+                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-sm font-medium text-blue-700 dark:text-blue-400">
+                                                        <Building2 className="w-3.5 h-3.5" /> {prontuLinkClinic}
+                                                    </div>
+                                                )}
+                                                {vetDisplayName && (
+                                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-sm font-medium text-teal-700 dark:text-teal-400">
+                                                        <Stethoscope className="w-3.5 h-3.5" /> {vetDisplayName}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {prontuLinkPhotoUrl && (
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={`/api/prontulink-asset?token=${data.tutor_token}&path=${encodeURIComponent(prontuLinkPhotoUrl)}`}
+                                                        alt={`Foto de ${animalName}`}
+                                                        className="w-16 h-16 rounded-xl object-cover border border-border/60 shadow-sm"
+                                                    />
+                                                    <span className="text-sm text-muted-foreground">Foto de {animalName || 'animal'}</span>
                                                 </div>
                                             )}
-                                            <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium min-h-[120px]">
-                                                {tutorSummary || <span className="text-muted-foreground italic">Nenhum conteúdo personalizado. Clique em "Editar Prontuário" para escrever o que o tutor verá.</span>}
+                                            <div className="text-base text-foreground/90 whitespace-pre-wrap leading-relaxed font-medium min-h-[60px]">
+                                                {tutorSummary || <span className="text-muted-foreground italic">Nenhuma mensagem. Clique em &quot;Editar Prontuário&quot; para adicionar.</span>}
                                             </div>
+                                            {prontuLinkSessions.length > 0 && (
+                                                <div className="space-y-2 pt-3 border-t border-border/30">
+                                                    <p className="text-xs uppercase tracking-widest font-bold text-muted-foreground">{prontuLinkSessions.length} sess{prontuLinkSessions.length !== 1 ? 'ões' : 'ão'}</p>
+                                                    {prontuLinkSessions.map(session => (
+                                                        <div key={session.id} className="flex items-center gap-2 p-3 bg-muted/20 rounded-xl border border-border/30">
+                                                            {session.tipo === 'mensagem' && <MessageSquare className="w-4 h-4 text-teal-500 shrink-0" />}
+                                                            {session.tipo === 'medicacao' && <Pill className="w-4 h-4 text-blue-500 shrink-0" />}
+                                                            {session.tipo === 'exame' && <Microscope className="w-4 h-4 text-purple-500 shrink-0" />}
+                                                            {session.tipo === 'anexo' && <Paperclip className="w-4 h-4 text-orange-500 shrink-0" />}
+                                                            <span className="text-sm font-medium">{session.titulo || 'Sem título'}</span>
+                                                            {session.tipo === 'medicacao' && (session.medicacoes?.length ?? 0) > 0 && (
+                                                                <span className="text-xs text-muted-foreground ml-auto">{session.medicacoes!.length} medicamento{session.medicacoes!.length !== 1 ? 's' : ''}</span>
+                                                            )}
+                                                            {session.tipo === 'anexo' && (session.anexos?.length ?? 0) > 0 && (
+                                                                <span className="text-xs text-muted-foreground ml-auto">{session.anexos!.length} arquivo{session.anexos!.length !== 1 ? 's' : ''}</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {!prontuLinkClinic && !vetDisplayName && !tutorSummary && prontuLinkSessions.length === 0 && !prontuLinkPhotoUrl && (
+                                                <span className="text-muted-foreground italic text-sm">Nenhum conteúdo personalizado. Clique em &quot;Editar Prontuário&quot; para configurar.</span>
+                                            )}
                                         </div>
                                     )}
                                 </div>

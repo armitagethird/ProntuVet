@@ -71,6 +71,9 @@ export async function PATCH(
             tutor_name: z.string().max(100).optional(),
             vet_display_name: z.string().max(120).optional(),
             title: z.string().max(200).optional(),
+            prontulink_clinic_name: z.string().max(120).optional(),
+            prontulink_animal_photo_url: z.string().max(500).optional(),
+            prontulink_sessions: z.array(z.any()).optional(),
         }).refine(data => Object.keys(data).length > 0, {
             message: "Nenhum dado para atualizar enviado"
         })
@@ -80,7 +83,7 @@ export async function PATCH(
             return NextResponse.json({ error: bodyValidation.error.issues[0].message }, { status: 400 })
         }
 
-        const { structured_content, tutor_summary, vet_summary, manual_notes, animal_name, animal_species, tutor_name, vet_display_name } = bodyValidation.data
+        const { structured_content, tutor_summary, vet_summary, manual_notes, animal_name, animal_species, tutor_name, vet_display_name, prontulink_clinic_name, prontulink_animal_photo_url, prontulink_sessions } = bodyValidation.data
 
         // 1. Fetch current consultation to get animal_id
         const { data: currentConsultation } = await supabase
@@ -98,6 +101,9 @@ export async function PATCH(
             vet_display_name: string
             title: string
             animal_id: string | null
+            prontulink_clinic_name: string
+            prontulink_animal_photo_url: string
+            prontulink_sessions: unknown[]
         }> = {}
         if (structured_content !== undefined) updateData.structured_content = structured_content;
         if (tutor_summary !== undefined) updateData.tutor_summary = tutor_summary;
@@ -106,6 +112,9 @@ export async function PATCH(
         if (tutor_name !== undefined) updateData.tutor_name = tutor_name;
         if (vet_display_name !== undefined) updateData.vet_display_name = vet_display_name;
         if (body.title !== undefined) updateData.title = body.title;
+        if (prontulink_clinic_name !== undefined) updateData.prontulink_clinic_name = prontulink_clinic_name;
+        if (prontulink_animal_photo_url !== undefined) updateData.prontulink_animal_photo_url = prontulink_animal_photo_url;
+        if (prontulink_sessions !== undefined) updateData.prontulink_sessions = prontulink_sessions;
 
         // Handle case where user edits the animal name/species
         if (animal_name !== undefined || animal_species !== undefined) {
