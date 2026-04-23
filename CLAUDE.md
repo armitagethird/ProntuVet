@@ -44,9 +44,10 @@ supabase db push
 ### Subscription / billing flow
 
 - Plans: `free`, `essential`, `platinum`, `clinica` — stored in `profiles.plano`.
-- `/assinatura` page handles checkout for `essential` and `platinum` (Asaas payment gateway). The `clinica` plan currently goes to WhatsApp.
+- `/assinatura` page handles checkout for `essential`, `platinum` and `clinica` (all via Asaas).
 - **`POST /api/assinatura/checkout`** (Next.js API Route) calls `src/lib/asaas.ts` → creates a recurring Asaas checkout session and saves `checkoutSession → userId + plano` to `asaas_checkout_sessions`.
-- **`supabase/functions/asaas-webhook`** receives Asaas events, resolves the user (via checkout session, then externalReference fallback), and updates `profiles.plano / status / data_vencimento`.
+  - For `clinica`: user must already be `owner` or `admin` of an `organizations` row (created in `/clinica`). The route rejects with "Crie uma clínica em /clinica antes de assinar o plano Clínica" otherwise. `externalReference` is prefixed with `org:` so the webhook updates the organization, not the individual profile.
+- **`supabase/functions/asaas-webhook`** receives Asaas events, resolves the user (via checkout session, then externalReference fallback), and updates `profiles.plano / status / data_vencimento` (or `organizations.*` for `org:` refs).
 - Idempotency: processed payment IDs are stored in `asaas_processed_events`.
 
 ### ProntuLink
@@ -59,13 +60,15 @@ supabase db push
 
 | Table | Purpose |
 |---|---|
-| `profiles` | Vet profile + `plano`, `status`, billing fields, `asaas_subscription_id` |
+| `profiles` | Vet profile + `plano`, `status`, billing fields, `asaas_subscription_id`, `lgpd_accepted_at`, `lgpd_version` |
 | `consultations` | Every record; `structured_content` (jsonb), `tutor_token`, `resumo_trilha` |
 | `animals` | Patients, linked to `user_id` |
 | `consultation_templates` | Custom or system-default templates (`is_system_default = true` is global) |
 | `uso_consultas` | Per-consultation usage log — used for rate limiting and cost tracking |
-| `asaas_checkout_sessions` | Maps `checkout_session_id → user_id + plano` |
+| `asaas_checkout_sessions` | Maps `checkout_session_id → user_id + plano` (or `organization_id` for `clinica`) |
 | `asaas_processed_events` | Idempotency log for webhook events |
+| `organizations` | Clínica multi-tenant group; owns `asaas_subscription_id` + `status` + `data_vencimento` |
+| `organization_members` | `(organization_id, user_id, role)` where role ∈ `owner | admin | vet`; unique per user |
 
 All tables have RLS active. Every user query is scoped to `user_id = auth.uid()`.
 
@@ -85,7 +88,7 @@ Pages in `src/app/` follow Next.js App Router conventions:
 
 ### Plan limits enforcement
 
-Limits are enforced in the Edge Function (`process-consultation`), not on the client:
+Limits are enforced in the Edge Function (`process-consultation`), not on the client. The **single source of truth** is `src/lib/plan-limits.ts` (type `Plano`, constant `PLAN_LIMITS`):
 
 | Plan | Monthly | Daily | Hourly |
 |---|---|---|---|
@@ -94,6 +97,36 @@ Limits are enforced in the Edge Function (`process-consultation`), not on the cl
 | platinum | 200 | 20 | 25 |
 | clinica | 600 | 60 | 40 |
 
+For `clinica`, limits are **aggregated across all members** of the organization.
+
+### Rate limiting
+
+`src/lib/rate-limit.ts` provides Upstash Redis sliding-window limiters. Buckets:
+
+| Bucket | Limit | Use |
+|---|---|---|
+| `auth` | 5/60s | login, signup, password reset |
+| `mutation` | 30/60s | authenticated POST/PATCH/DELETE |
+| `ai` | 20/60s | Gemini-backed routes |
+| `strict` | 3/60s | irreversible actions (account delete, cancel) |
+| `read` | 120/60s | authenticated GETs |
+
+**Fail-open**: if `UPSTASH_REDIS_REST_URL` is not set, limiters return `success: true` (keeps local dev unblocked, logs a warning in prod).
+
+### LGPD
+
+- `/privacidade`, `/termos` — public legal pages.
+- `POST /api/lgpd/export` — user downloads all their data as JSON.
+- `POST /api/lgpd/delete-account` — user irrevocably deletes their account (cascade migrations handle dependent rows).
+- Consent is recorded in `profiles.lgpd_accepted_at` + `profiles.lgpd_version` so changes to the legal text can be re-prompted later.
+- DPO contact email is referenced in `/privacidade` — intended to be `privacidade@<final-domain>` once the domain is registered (see `docs/dominios.md`).
+
+### Observability (Sentry)
+
+- Three configs: `sentry.server.config.ts`, `sentry.edge.config.ts`, `src/instrumentation-client.ts`. All pin `tracesSampleRate` to 0.1 in prod, disable `sendDefaultPii`, disable Session Replay (LGPD risk for clinical content), and strip `authorization` / `cookie` / `x-api-key` headers + cookies in `beforeSend`.
+- `next.config.mjs` wraps with `withSentryConfig({ tunnelRoute: '/monitoring' })`; `src/middleware.ts` excludes `/monitoring` so Supabase auth doesn't intercept Sentry tunnel requests.
+- `src/app/global-error.tsx` captures unhandled Next.js errors via `Sentry.captureException`.
+
 ## Environment variables
 
 ```
@@ -101,12 +134,18 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 GEMINI_API_KEY
-ASAAS_API_KEY          # use getRawEnvVar(), never process.env directly
-ASAAS_BASE_URL         # sandbox: https://sandbox.asaas.com/api/v3
-ASAAS_WEBHOOK_TOKEN    # header token Asaas sends on webhooks
+ASAAS_API_KEY              # use getRawEnvVar(), never process.env directly
+ASAAS_BASE_URL             # sandbox: https://sandbox.asaas.com/api/v3
+ASAAS_WEBHOOK_TOKEN        # header token Asaas sends on webhooks
+UPSTASH_REDIS_REST_URL     # rate limiting — fail-open if absent
+UPSTASH_REDIS_REST_TOKEN
+NEXT_PUBLIC_SENTRY_DSN     # Sentry DSN (public by design)
+SENTRY_ORG                 # build-time only (source map upload)
+SENTRY_PROJECT             # build-time only
+SENTRY_AUTH_TOKEN          # build-time only; do NOT expose client-side
 ```
 
-Edge Functions read these from Supabase secrets (not `.env.local`).
+Edge Functions read Supabase-related + Gemini secrets from Supabase Function Secrets (not `.env.local`).
 
 ## Important decisions
 
