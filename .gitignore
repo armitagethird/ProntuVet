@@ -69,3 +69,6 @@ scratch/
 runtime-logs.json
 *.csv
 *.log
+
+# Sentry Config File
+.env.sentry-build-plugin

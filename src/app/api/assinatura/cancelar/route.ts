@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { cancelarAssinatura } from '@/lib/asaas'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function DELETE(req: NextRequest) {
   const supabase = createClient(
@@ -15,10 +16,13 @@ export async function DELETE(req: NextRequest) {
 
   const token = authHeader.replace('Bearer ', '')
   const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-  
+
   if (authError || !user) {
     return NextResponse.json({ erro: 'Token inválido' }, { status: 401 })
   }
+
+  const limited = await checkRateLimit(req, 'strict', `user:${user.id}`)
+  if (limited) return limited
 
   // 1. Buscar o ID da assinatura no perfil do usuário
   const { data: profile, error: profileError } = await supabase

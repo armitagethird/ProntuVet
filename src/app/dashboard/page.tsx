@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getMonthlyLimit } from '@/lib/plan-limits'
 import { DashboardClient } from './DashboardClient'
 
 export default async function DashboardPage() {
@@ -7,11 +8,13 @@ export default async function DashboardPage() {
     const userRes = await supabase.auth.getUser()
     
     // Deixamos a query rodando como Promessa sem travar a tela (React RSC Streaming)
-    const templatesPromise = supabase
-        .from('consultation_templates')
-        .select('id, name')
-        .order('created_at', { ascending: false })
-        .then(res => res.data || [])
+    const templatesPromise: Promise<{ id: string; name: string }[]> = Promise.resolve(
+        supabase
+            .from('consultation_templates')
+            .select('id, name')
+            .order('created_at', { ascending: false })
+            .then(res => res.data || []),
+    )
 
     const user = userRes.data.user
     if (!user) return null
@@ -30,14 +33,16 @@ export default async function DashboardPage() {
     const userFirstName = user.user_metadata?.first_name || 'Doutor(a)'
     const plano = profileRes.data?.plano || 'free'
     const monthlyUsage = usageRes.count || 0
+    const monthlyLimit = getMonthlyLimit(plano)
 
     return (
-        <DashboardClient 
-            userFirstName={userFirstName} 
-            templatesPromise={templatesPromise} 
+        <DashboardClient
+            userFirstName={userFirstName}
+            templatesPromise={templatesPromise}
             plano={plano}
             status={profileRes.data?.status}
             monthlyUsage={monthlyUsage}
+            monthlyLimit={monthlyLimit}
         />
     )
 }

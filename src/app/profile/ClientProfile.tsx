@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User, LogOut, Mail, Shield, Plus, Key, Camera, PawPrint, Trash2, BarChart3, Clock, Zap, Dog, ArrowRight, Loader2 } from 'lucide-react'
+import { User, LogOut, Mail, Shield, Plus, Key, Camera, PawPrint, Trash2, BarChart3, Clock, Zap, Dog, ArrowRight, Loader2, Download, FileWarning } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,19 +10,20 @@ import { toast } from 'sonner'
 import Image from 'next/image'
 import { Progress } from '@/components/ui/progress'
 import Link from 'next/link'
+import { getPlanLimits } from '@/lib/plan-limits'
+import { useRouter } from 'next/navigation'
 
 export default function ClientProfile({ initialUser, plano, onLogout }: { initialUser: any, plano: string, onLogout: () => void }) {
     const supabase = createClient()
+    const router = useRouter()
     const [userMeta, setUserMeta] = useState(initialUser.user_metadata || {})
     const [pets, setPets] = useState<{name: string, kind: string}[]>(initialUser.user_metadata?.my_pets || [])
     const [newPetName, setNewPetName] = useState('')
     const [newPetKind, setNewPetKind] = useState('')
     const [usage, setUsage] = useState({ daily: 0, monthly: 0, loading: true })
+    const [deleting, setDeleting] = useState(false)
 
-    const limits = {
-        free: { daily: 15, monthly: 20 },
-        platinum: { daily: 20, monthly: 200 }
-    }[plano] || { daily: 15, monthly: 20 };
+    const limits = getPlanLimits(plano)
 
     useEffect(() => {
         const fetchUsage = async () => {
@@ -145,6 +146,48 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
         await supabase.auth.updateUser({
             data: { my_pets: updatedPets }
         })
+    }
+
+    const handleExportData = async () => {
+        const id = toast.loading('Preparando exportação...')
+        try {
+            const res = await fetch('/api/lgpd/export')
+            if (!res.ok) throw new Error('Falha ao exportar')
+            const blob = await res.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `prontuvet-dados-${new Date().toISOString().slice(0, 10)}.json`
+            document.body.appendChild(a)
+            a.click()
+            a.remove()
+            URL.revokeObjectURL(url)
+            toast.success('Download iniciado.', { id })
+        } catch (err: any) {
+            toast.error(err.message || 'Erro ao exportar dados.', { id })
+        }
+    }
+
+    const handleDeleteAccount = async () => {
+        const confirmation = window.prompt(
+            'Esta ação é IRREVERSÍVEL. Todos os seus prontuários, animais, transcrições e anexos serão apagados.\n\nDigite EXCLUIR para confirmar:'
+        )
+        if (confirmation !== 'EXCLUIR') {
+            toast.info('Exclusão cancelada.')
+            return
+        }
+        setDeleting(true)
+        const id = toast.loading('Excluindo conta...')
+        try {
+            const res = await fetch('/api/lgpd/delete-account', { method: 'DELETE' })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error || 'Erro ao excluir conta')
+            toast.success('Conta excluída.', { id })
+            setTimeout(() => router.push('/login'), 1000)
+        } catch (err: any) {
+            toast.error(err.message || 'Erro ao excluir conta.', { id })
+            setDeleting(false)
+        }
     }
 
     const handleCancelSubscription = async () => {
@@ -380,6 +423,63 @@ export default function ClientProfile({ initialUser, plano, onLogout }: { initia
                         </Button>
                       </div>
                     )}
+                </div>
+
+                {/* CLÍNICA (multi-tenant) — apenas plano Clínica */}
+                {plano === 'clinica' && (
+                    <div className="md:col-span-2 bg-card/40 border border-border/40 rounded-3xl p-6 flex items-center justify-between gap-4 flex-wrap">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
+                                <PawPrint className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold">Minha Clínica</h2>
+                                <p className="text-sm text-muted-foreground">Crie uma clínica para compartilhar o plano com a equipe.</p>
+                            </div>
+                        </div>
+                        <Link href="/clinica">
+                            <Button variant="outline" className="rounded-xl hover:bg-purple-500/10 hover:text-purple-600">
+                                Gerenciar clínica
+                            </Button>
+                        </Link>
+                    </div>
+                )}
+
+                {/* LGPD / PRIVACIDADE */}
+                <div className="md:col-span-2 space-y-4 bg-card/40 border border-border/40 rounded-3xl p-6 backdrop-blur-md">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-teal-500" /> Privacidade e Dados (LGPD)
+                        </h2>
+                        <div className="flex gap-3 text-xs">
+                            <Link href="/termos" target="_blank" className="text-teal-600 hover:underline font-semibold">Termos</Link>
+                            <Link href="/privacidade" target="_blank" className="text-teal-600 hover:underline font-semibold">Privacidade</Link>
+                        </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Exerça seus direitos de acesso, portabilidade e eliminação (Art. 18 da LGPD). Os dados exportados incluem prontuários, animais, perfil e histórico de uso.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={handleExportData}
+                            className="flex-1 rounded-xl hover:bg-teal-500/10 hover:text-teal-600"
+                        >
+                            <Download className="w-4 h-4 mr-2" /> Exportar meus dados
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleDeleteAccount}
+                            disabled={deleting}
+                            className="flex-1 rounded-xl text-red-600 border-red-500/30 hover:bg-red-500/10 hover:text-red-700"
+                        >
+                            {deleting ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Excluindo...</>
+                            ) : (
+                                <><FileWarning className="w-4 h-4 mr-2" /> Excluir minha conta</>
+                            )}
+                        </Button>
+                    </div>
                 </div>
 
                 {/* UPGRADE CARD */}

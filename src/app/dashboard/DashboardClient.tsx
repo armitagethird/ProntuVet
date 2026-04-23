@@ -24,16 +24,18 @@ interface DashboardClientProps {
   plano: string
   status?: string
   monthlyUsage: number
+  monthlyLimit: number
 }
 
 const STORAGE_KEY = 'prontuvet_selected_template'
 
-export function DashboardClient({ 
-  userFirstName, 
-  templatesPromise, 
-  plano, 
+export function DashboardClient({
+  userFirstName,
+  templatesPromise,
+  plano,
   status,
-  monthlyUsage 
+  monthlyUsage,
+  monthlyLimit,
 }: DashboardClientProps) {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('system-default')
   const [isPending, startTransition] = useTransition()
@@ -109,13 +111,25 @@ export function DashboardClient({
 
         {/* Plan Badge */}
         <div className="flex items-center gap-2">
-          {plano === 'platinum' && status !== 'cancelado' ? (
+          {status === 'cancelado' ? (
+            <div className="px-3 py-1 bg-muted/50 text-muted-foreground border border-border/50 rounded-full text-xs font-bold shadow-sm">
+              Assinatura Cancelada
+            </div>
+          ) : plano === 'clinica' ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-purple-100 via-white to-purple-100 text-purple-700 border border-purple-300/50 shadow-sm rounded-full text-xs font-black uppercase tracking-widest">
+              <Zap className="w-3 h-3 fill-current text-purple-400" /> Clínica
+            </div>
+          ) : plano === 'platinum' ? (
             <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-slate-200 via-white to-slate-200 text-slate-700 border border-slate-300/50 shadow-sm shadow-slate-400/10 rounded-full text-xs font-black uppercase tracking-widest">
-               <Zap className="w-3 h-3 fill-current text-slate-400" /> Platinum
+              <Zap className="w-3 h-3 fill-current text-slate-400" /> Platinum
+            </div>
+          ) : plano === 'essential' ? (
+            <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-teal-100 via-white to-teal-100 text-teal-700 border border-teal-300/50 shadow-sm rounded-full text-xs font-black uppercase tracking-widest">
+              <Zap className="w-3 h-3 fill-current text-teal-400" /> Essential · {monthlyUsage}/{monthlyLimit}
             </div>
           ) : (
             <div className="px-3 py-1 bg-muted/50 text-muted-foreground border border-border/50 rounded-full text-xs font-bold shadow-sm">
-               {status === 'cancelado' ? 'Assinatura Cancelada' : 'Plano Gratuito'} · {monthlyUsage}/20 consultas
+              Plano Gratuito · {monthlyUsage}/{monthlyLimit} consultas
             </div>
           )}
         </div>

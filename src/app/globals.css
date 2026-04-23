@@ -41,6 +41,23 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
+  @keyframes shimmer {
+    0%   { background-position: 200% center; }
+    100% { background-position: -200% center; }
+  }
+
+  @keyframes glow-pulse-plat {
+    0%, 100% { box-shadow: 0 0 18px 2px rgba(148,163,184,0.18), 0 0 40px 0px rgba(226,232,240,0.08); }
+    50%       { box-shadow: 0 0 30px 4px rgba(203,213,225,0.28), 0 0 60px 4px rgba(241,245,249,0.12); }
+  }
+
+  @keyframes glow-pulse-clinic {
+    0%, 100% { box-shadow: 0 0 18px 2px rgba(124,58,237,0.22), 0 0 40px 0px rgba(167,139,250,0.10); }
+    50%       { box-shadow: 0 0 32px 6px rgba(139,92,246,0.35), 0 0 60px 4px rgba(196,181,253,0.14); }
+  }
+
+  --animate-shimmer: shimmer 3.2s linear infinite;
+
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.8; }
@@ -72,6 +89,29 @@
     100% { transform: translateX(200%); }
   }
 
+  @keyframes plat-shine {
+    0%, 65%  { transform: translateX(-210%); }
+    93%, 100% { transform: translateX(260%); }
+  }
+
+  @keyframes annual-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(20,184,166,0.5); }
+    50%       { box-shadow: 0 0 0 6px rgba(20,184,166,0); }
+  }
+
+  @keyframes aurora-drift-a {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(40px, -30px) scale(1.15); }
+  }
+  @keyframes aurora-drift-b {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(-35px, 25px) scale(1.1); }
+  }
+  @keyframes aurora-drift-c {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(20px, -15px) scale(0.88); }
+  }
+
   @keyframes rgb-pulse {
     0%, 100% { 
         box-shadow: 0 0 15px rgba(20, 184, 166, 0.15); 
@@ -101,6 +141,71 @@
   --animate-logo-pulse-glow: logo-pulse-glow 2s ease-in-out infinite;
   --animate-spin-slow: spin-slow 8s linear infinite;
   --animate-progress-loop: progress-loop 2s infinite ease-in-out;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+@keyframes glow-pulse-plat {
+  0%, 100% { box-shadow: 0 0 18px 2px rgba(148,163,184,0.18), 0 0 40px 0px rgba(226,232,240,0.08); }
+  50%       { box-shadow: 0 0 30px 4px rgba(203,213,225,0.28), 0 0 60px 4px rgba(241,245,249,0.12); }
+}
+@keyframes glow-pulse-clinic {
+  0%, 100% { box-shadow: 0 0 18px 2px rgba(124,58,237,0.22), 0 0 40px 0px rgba(167,139,250,0.10); }
+  50%       { box-shadow: 0 0 32px 6px rgba(139,92,246,0.35), 0 0 60px 4px rgba(196,181,253,0.14); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes logo-pulse-glow {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px var(--primary)); }
+  50%       { transform: scale(1.08); filter: drop-shadow(0 0 15px var(--primary)); }
+}
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes progress-loop {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+@keyframes plat-shine {
+  0%, 65%   { transform: translateX(-210%); }
+  93%, 100% { transform: translateX(260%); }
+}
+@keyframes annual-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(20,184,166,0.5); }
+  50%       { box-shadow: 0 0 0 6px rgba(20,184,166,0); }
+}
+@keyframes aurora-drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(40px, -30px) scale(1.15); }
+}
+@keyframes aurora-drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-35px, 25px) scale(1.1); }
+}
+@keyframes aurora-drift-c {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(20px, -15px) scale(0.88); }
+}
+@keyframes rgb-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(20,184,166,0.15); border-color: rgba(20,184,166,0.3); }
+  50%       { box-shadow: 0 0 20px rgba(16,185,129,0.2);  border-color: rgba(16,185,129,0.4); }
+}
+@keyframes rgb-euphoric {
+  0%, 100% { box-shadow: 0 0 20px rgba(20,184,166,0.25); transform: scale(1.01); }
+  50%       { box-shadow: 0 0 30px rgba(16,185,129,0.35); transform: scale(1.02); }
 }
 
 @layer utilities {

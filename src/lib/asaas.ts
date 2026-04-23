@@ -5,8 +5,22 @@ function cleanNumbers(str: string) {
   return str.replace(/\D/g, '')
 }
 
+const PLANO_CONFIG = {
+  essential: { nome: 'ProntuVet Essential', descricao: '80 consultas/mês + Timeline clínica',                    valor: 34.90 },
+  platinum:  { nome: 'ProntuVet Platinum',  descricao: '200 consultas/mês + ProntuLink',                         valor: 69.90 },
+  clinica:   { nome: 'ProntuVet Clínica',   descricao: '600 consultas/mês compartilhadas + múltiplos vets',      valor: 149.90 },
+} as const
+
+export type PlanoCheckout = keyof typeof PLANO_CONFIG
+
+export interface CheckoutTarget {
+  /** 'user' = fluxo individual (essential/platinum). 'organization' = Clínica. */
+  kind: 'user' | 'organization'
+  id: string
+}
+
 export async function criarCheckoutAssinatura(
-  userId: string,
+  target: string | CheckoutTarget,
   cliente: {
     nome: string
     email: string
@@ -17,8 +31,12 @@ export async function criarCheckoutAssinatura(
     addressNumber: string
     province: string
     complement?: string
-  }
+  },
+  plano: PlanoCheckout = 'platinum'
 ) {
+  const normalizedTarget: CheckoutTarget =
+    typeof target === 'string' ? { kind: 'user', id: target } : target
+  const userId = normalizedTarget.id
   // Usa getRawEnvVar para evitar o dotenv-expand do Next.js, que quebra
   // chaves que começam com `$` (como as chaves do Asaas sandbox).
   const apiKey = (getRawEnvVar('ASAAS_API_KEY') || '').trim()
@@ -67,6 +85,11 @@ export async function criarCheckoutAssinatura(
     )
   }
 
+  const planoInfo = PLANO_CONFIG[plano]
+  // externalReference é consumido pelo webhook. Prefixo "org:" identifica organização.
+  const externalRef =
+    normalizedTarget.kind === 'organization' ? `org:${normalizedTarget.id}` : normalizedTarget.id
+
   const body = {
     billingTypes: ['CREDIT_CARD'],
     chargeTypes: ['RECURRENT'],
@@ -76,13 +99,13 @@ export async function criarCheckoutAssinatura(
       cancelUrl: `${callbackBaseUrl}/assinatura/cancelado`,
       expiredUrl: `${callbackBaseUrl}/assinatura/expirado`,
     },
-    externalReference: userId,
+    externalReference: externalRef,
     items: [
       {
-        name: 'ProntuVet Platinum',
-        description: 'Copiloto clínico com IA — 200 consultas/mês',
+        name: planoInfo.nome,
+        description: planoInfo.descricao,
         quantity: 1,
-        value: 59.90,
+        value: planoInfo.valor,
       },
     ],
     customerData: {
@@ -99,7 +122,7 @@ export async function criarCheckoutAssinatura(
     subscription: {
       cycle: 'MONTHLY',
       nextDueDate: new Date().toISOString().split('T')[0],
-      externalReference: userId,
+      externalReference: externalRef,
     },
   }
 
@@ -130,20 +153,25 @@ export async function criarCheckoutAssinatura(
     throw new Error('Link de pagamento não retornado pelo Asaas. Verifique os logs do servidor.')
   }
 
-  // Salva o mapeamento checkoutSessionId → userId para o webhook identificar corretamente o usuário.
-  // O Asaas não propaga o externalReference ao payment, mas sempre inclui o checkoutSession no webhook.
+  // Salva o mapeamento checkoutSessionId → alvo (user ou organization).
+  // O Asaas nem sempre propaga o externalReference no payment, mas sempre inclui o checkoutSession no webhook.
   if (data.id) {
     const { createClient } = await import('@supabase/supabase-js')
     const sb = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
+    const row =
+      normalizedTarget.kind === 'organization'
+        ? { checkout_session_id: data.id, organization_id: normalizedTarget.id, user_id: null, plano }
+        : { checkout_session_id: data.id, user_id: normalizedTarget.id, organization_id: null, plano }
+
     const { error: dbError } = await sb
       .from('asaas_checkout_sessions')
-      .upsert({ checkout_session_id: data.id, user_id: userId }, { onConflict: 'checkout_session_id' })
+      .upsert(row, { onConflict: 'checkout_session_id' })
 
     if (dbError) console.error('Erro ao salvar checkout session:', dbError)
-    else console.log('Checkout session salvo:', data.id, '→ userId:', userId)
+    else console.log('Checkout session salvo:', data.id, '→', normalizedTarget)
   }
 
   console.log('URL do checkout:', checkoutUrl)

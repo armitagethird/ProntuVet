@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { findOrCreateAnimal } from '@/lib/supabase/animals'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 const consultationIdSchema = z.object({
@@ -58,6 +59,9 @@ export async function PATCH(
         if (!user) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
         }
+
+        const limited = await checkRateLimit(request, 'mutation', `user:${user.id}`)
+        if (limited) return limited
 
         const body = await request.json()
         
@@ -194,6 +198,9 @@ export async function DELETE(
         if (!user) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
         }
+
+        const limited = await checkRateLimit(request, 'mutation', `user:${user.id}`)
+        if (limited) return limited
 
         // 1. Fetch all attachments for this consultation before deleting
         const { data: attachments } = await supabase

@@ -135,6 +135,23 @@ export function SignupForm() {
                         className="bg-background/50 focus-visible:ring-teal-500"
                     />
                 </div>
+
+                <label className="flex items-start gap-2 text-xs text-muted-foreground mt-1 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        name="lgpd_consent"
+                        required
+                        className="mt-0.5 accent-teal-500"
+                    />
+                    <span>
+                        Li e aceito os{' '}
+                        <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline font-semibold">Termos de Uso</a>{' '}
+                        e a{' '}
+                        <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline font-semibold">Política de Privacidade</a>.
+                        Declaro ser o controlador dos dados de tutores e animais que inserir na plataforma.
+                    </span>
+                </label>
+
                 <Button type="submit" className="w-full h-11 mt-2 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-semibold text-base shadow-md shadow-teal-500/20 transition-all duration-300 hover:scale-[1.02]">
                     Criar Conta Grátis
                 </Button>

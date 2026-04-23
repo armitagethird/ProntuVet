@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { analyzeHistoryQuery } from '@/lib/gemini'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 /** Escapa caracteres especiais do operador LIKE para evitar comportamento inesperado */
 function sanitizeLike(value: string): string {
@@ -15,6 +16,10 @@ export async function GET(req: NextRequest) {
         if (authError || !user) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
         }
+
+        // Bucket 'ai': cada busca consome tokens Gemini.
+        const limited = await checkRateLimit(req, 'ai', `user:${user.id}`)
+        if (limited) return limited
 
         const { searchParams } = new URL(req.url)
         const query = searchParams.get('q')

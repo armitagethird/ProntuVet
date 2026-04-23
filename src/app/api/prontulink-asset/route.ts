@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimitByIp } from '@/lib/rate-limit'
 
 export async function GET(request: NextRequest) {
+    // Rota pública (tutor acessa sem auth). Rate limit por IP previne scraping.
+    const limited = await rateLimitByIp(request, 'read')
+    if (limited) return limited
+
     const { searchParams } = new URL(request.url)
     const token = searchParams.get('token')
     const path = searchParams.get('path')

@@ -3,12 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { LEGAL_VERSION } from '@/lib/legal'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
 
-    // type-casting here for convenience
-    // in practice, you should validate your inputs
     const data = {
         email: formData.get('email') as string,
         password: formData.get('password') as string,
@@ -17,7 +16,7 @@ export async function login(formData: FormData) {
     const { error } = await supabase.auth.signInWithPassword(data)
 
     if (error) {
-        console.error("Login Supabase Error:", error)
+        console.error('Login Supabase Error:', error)
         redirect(`/login?error=${encodeURIComponent(error.message)}`)
     }
 
@@ -33,11 +32,20 @@ export async function signup(formData: FormData) {
     const firstName = formData.get('first_name') as string
     const lastName = formData.get('last_name') as string
     const birthDate = formData.get('birth_date') as string
-    const specialization = formData.get('specialization_other') || formData.get('specialization') as string
+    const specialization =
+        (formData.get('specialization_other') as string) ||
+        (formData.get('specialization') as string)
     const rawCpf = formData.get('cpf') as string
-    const cpf = rawCpf.replace(/\D/g, '') // Normalize: keep only digits
+    const cpf = rawCpf.replace(/\D/g, '')
+    const lgpdConsent = formData.get('lgpd_consent')
 
-    // 1. Proactive CPF Check (Best Practice: check before trigger fails)
+    if (!lgpdConsent) {
+        redirect(
+            `/login?error=${encodeURIComponent('É necessário aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.')}`,
+        )
+    }
+
+    // Verificação proativa de CPF duplicado (antes do trigger falhar)
     const { data: existingProfile } = await supabase
         .from('profiles')
         .select('id')
@@ -45,11 +53,12 @@ export async function signup(formData: FormData) {
         .single()
 
     if (existingProfile) {
-        redirect(`/login?error=${encodeURIComponent('Este CPF já está cadastrado em outra conta. Por favor, recupere sua senha ou use outro CPF.')}`)
+        redirect(
+            `/login?error=${encodeURIComponent('Este CPF já está cadastrado em outra conta. Recupere sua senha ou use outro CPF.')}`,
+        )
     }
 
-    // 2. Attempt Signup
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -57,26 +66,36 @@ export async function signup(formData: FormData) {
                 first_name: firstName,
                 last_name: lastName,
                 birth_date: birthDate,
-                specialization: specialization,
-                cpf: cpf,
-            }
-        }
+                specialization,
+                cpf,
+            },
+        },
     })
 
     if (error) {
-        console.error("Signup Supabase Error:", error)
-        
-        // Translate common Supabase Auth errors
+        console.error('Signup Supabase Error:', error)
+
         let friendlyMessage = error.message
         if (error.message.includes('User already registered')) {
             friendlyMessage = 'Este e-mail já está cadastrado. Tente fazer login ou recuperar sua senha.'
         } else if (error.message.includes('Password should be')) {
             friendlyMessage = 'A senha deve ter pelo menos 6 caracteres.'
         } else if (error.message.includes('Database error saving new user')) {
-            friendlyMessage = 'Ocorreu um erro ao salvar seus dados. Verifique se o CPF ou E-mail já estão em uso.'
+            friendlyMessage = 'Ocorreu um erro ao salvar seus dados. Verifique se o CPF ou e-mail já estão em uso.'
         }
 
         redirect(`/login?error=${encodeURIComponent(friendlyMessage)}`)
+    }
+
+    // Registra o aceite LGPD. Tolerante a falhas para não bloquear cadastro.
+    if (signUpData?.user?.id) {
+        await supabase
+            .from('profiles')
+            .update({
+                lgpd_accepted_at: new Date().toISOString(),
+                lgpd_version: LEGAL_VERSION,
+            })
+            .eq('id', signUpData.user.id)
     }
 
     revalidatePath('/', 'layout')
