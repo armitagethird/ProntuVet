@@ -81,6 +81,15 @@ export default function TermosPage() {
                     <h2 className="text-xl font-bold mb-2">12. Foro</h2>
                     <p>Fica eleito o foro da comarca do Usuário para dirimir quaisquer controvérsias oriundas destes Termos.</p>
                 </div>
+
+                <div>
+                    <h2 className="text-xl font-bold mb-2">13. Contato</h2>
+                    <ul className="list-disc pl-6 space-y-1">
+                        <li>Dúvidas gerais: <a href="mailto:contato@prontuvet.com" className="text-teal-600 underline">contato@prontuvet.com</a></li>
+                        <li>Suporte técnico: <a href="mailto:suporte@prontuvet.com" className="text-teal-600 underline">suporte@prontuvet.com</a></li>
+                        <li>LGPD / Encarregado (DPO): <a href="mailto:privacidade@prontuvet.com" className="text-teal-600 underline">privacidade@prontuvet.com</a></li>
+                    </ul>
+                </div>
             </section>
         </main>
     )

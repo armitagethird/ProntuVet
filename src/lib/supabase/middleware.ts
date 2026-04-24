@@ -35,12 +35,22 @@ export async function updateSession(request: NextRequest) {
     if (!user && !isPublic) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+        url.search = ''
+        url.searchParams.set('redirect', pathname + request.nextUrl.search)
         return NextResponse.redirect(url)
     }
 
     if (user && (pathname === '/login' || pathname === '/')) {
+        const redirectParam = request.nextUrl.searchParams.get('redirect')
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
+        url.search = ''
+        if (redirectParam && redirectParam.startsWith('/') && !redirectParam.startsWith('//')) {
+            const target = new URL(redirectParam, request.nextUrl.origin)
+            url.pathname = target.pathname
+            url.search = target.search
+        } else {
+            url.pathname = '/dashboard'
+        }
         return NextResponse.redirect(url)
     }
 

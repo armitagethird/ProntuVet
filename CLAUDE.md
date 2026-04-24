@@ -119,7 +119,7 @@ For `clinica`, limits are **aggregated across all members** of the organization.
 - `POST /api/lgpd/export` — user downloads all their data as JSON.
 - `POST /api/lgpd/delete-account` — user irrevocably deletes their account (cascade migrations handle dependent rows).
 - Consent is recorded in `profiles.lgpd_accepted_at` + `profiles.lgpd_version` so changes to the legal text can be re-prompted later.
-- DPO contact email is referenced in `/privacidade` — intended to be `privacidade@<final-domain>` once the domain is registered (see `docs/dominios.md`).
+- DPO contact in `/privacidade` is `privacidade@prontuvet.com` (Cloudflare Email Routing → `romerosaraiva4@gmail.com`). Companion addresses: `contato@prontuvet.com` (general) and `suporte@prontuvet.com` (technical support), both referenced in `/termos` and the login footer.
 
 ### Observability (Sentry)
 

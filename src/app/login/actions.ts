@@ -5,8 +5,21 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LEGAL_VERSION } from '@/lib/legal'
 
+function safeRedirect(raw: FormDataEntryValue | null): string {
+    if (typeof raw !== 'string') return '/dashboard'
+    if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
+    return raw
+}
+
+function loginErrorUrl(message: string, redirectTo: string): string {
+    const qs = new URLSearchParams({ error: message })
+    if (redirectTo !== '/dashboard') qs.set('redirect', redirectTo)
+    return `/login?${qs.toString()}`
+}
+
 export async function login(formData: FormData) {
     const supabase = await createClient()
+    const redirectTo = safeRedirect(formData.get('redirectTo'))
 
     const data = {
         email: formData.get('email') as string,
@@ -17,15 +30,16 @@ export async function login(formData: FormData) {
 
     if (error) {
         console.error('Login Supabase Error:', error)
-        redirect(`/login?error=${encodeURIComponent(error.message)}`)
+        redirect(loginErrorUrl(error.message, redirectTo))
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect(redirectTo)
 }
 
 export async function signup(formData: FormData) {
     const supabase = await createClient()
+    const redirectTo = safeRedirect(formData.get('redirectTo'))
 
     const email = formData.get('email') as string
     const password = formData.get('password') as string
@@ -41,7 +55,7 @@ export async function signup(formData: FormData) {
 
     if (!lgpdConsent) {
         redirect(
-            `/login?error=${encodeURIComponent('É necessário aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.')}`,
+            loginErrorUrl('É necessário aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.', redirectTo),
         )
     }
 
@@ -54,7 +68,7 @@ export async function signup(formData: FormData) {
 
     if (existingProfile) {
         redirect(
-            `/login?error=${encodeURIComponent('Este CPF já está cadastrado em outra conta. Recupere sua senha ou use outro CPF.')}`,
+            loginErrorUrl('Este CPF já está cadastrado em outra conta. Recupere sua senha ou use outro CPF.', redirectTo),
         )
     }
 
@@ -84,7 +98,7 @@ export async function signup(formData: FormData) {
             friendlyMessage = 'Ocorreu um erro ao salvar seus dados. Verifique se o CPF ou e-mail já estão em uso.'
         }
 
-        redirect(`/login?error=${encodeURIComponent(friendlyMessage)}`)
+        redirect(loginErrorUrl(friendlyMessage, redirectTo))
     }
 
     // Registra o aceite LGPD. Tolerante a falhas para não bloquear cadastro.
@@ -99,7 +113,7 @@ export async function signup(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect(redirectTo)
 }
 
 export async function logout() {

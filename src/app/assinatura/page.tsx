@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, CSSProperties } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, useRef, CSSProperties } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Check, Zap, Shield, Loader2, MapPin, Phone, Hash, Home, Map, Star, Building2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { PRICING } from '@/lib/plan-pricing'
+import type { Plano } from '@/lib/plan-limits'
 
 const WHATSAPP_CLINICA = 'https://wa.me/5511999999999?text=Ol%C3%A1%2C+tenho+interesse+no+Plano+Cl%C3%ADnica+do+ProntuVet'
 
@@ -22,13 +24,6 @@ const platText: CSSProperties = { ...platShimmer, WebkitBackgroundClip: 'text', 
 // ── Gradientes Clínica ───────────────────────────────────────────────────────
 const CLINIC_BORDER = 'linear-gradient(135deg,#7c3aed,#4c1d95,#6d28d9,#a78bfa,#7c3aed)'
 const clinicText: CSSProperties = { background: 'linear-gradient(135deg,#a78bfa,#c4b5fd,#ede9fe)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', WebkitTextFillColor: 'transparent' }
-
-// ── Preços ───────────────────────────────────────────────────────────────────
-const PRICING = {
-  essential: { monthly: 34.90, annual: 27.90 },
-  platinum:  { monthly: 69.90, annual: 55.90 },
-  clinica:   { monthly: 149.90, annual: 119.90 },
-} as const
 
 // ── Tabela de comparação ─────────────────────────────────────────────────────
 type PlanKey = 'free' | 'essential' | 'platinum' | 'clinica'
@@ -68,21 +63,69 @@ export default function AssinarPage() {
   const [billingData, setBillingData]   = useState({
     cpf: '', telefone: '', cep: '', endereco: '', numero: '', bairro: '', complemento: '',
   })
-  const router   = useRouter()
+  const [currentPlan, setCurrentPlan]   = useState<Plano | null>(null)
+  const router       = useRouter()
+  const searchParams = useSearchParams()
+  const deepLinkRun  = useRef<'idle' | 'done'>('idle')
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => { const t = setTimeout(() => setVisible(true), 60); return () => clearTimeout(t) }, [])
+
+  // Aplica ?ciclo= da URL ao toggle mensal/anual
+  useEffect(() => {
+    const ciclo = searchParams.get('ciclo')
+    if (ciclo === 'annual' || ciclo === 'monthly') setBilling(ciclo)
+  }, [searchParams])
 
   useEffect(() => {
     async function loadProfile() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      if (profile) setBillingData({ cpf: profile.cpf || '', telefone: profile.telefone || '', cep: profile.cep || '', endereco: profile.endereco || '', numero: profile.numero || '', bairro: profile.bairro || '', complemento: profile.complemento || '' })
+      if (profile) {
+        setBillingData({ cpf: profile.cpf || '', telefone: profile.telefone || '', cep: profile.cep || '', endereco: profile.endereco || '', numero: profile.numero || '', bairro: profile.bairro || '', complemento: profile.complemento || '' })
+        setCurrentPlan((profile.plano as Plano) ?? 'free')
+      } else {
+        setCurrentPlan('free')
+      }
     }
     loadProfile()
   }, [])
+
+  // Deep-link: dispara auto-scroll + checkout conforme ?plano=
+  useEffect(() => {
+    if (deepLinkRun.current === 'done') return
+    if (currentPlan === null) return // aguarda profile carregar
+
+    const plano = searchParams.get('plano')
+    if (!plano) { deepLinkRun.current = 'done'; return }
+
+    deepLinkRun.current = 'done'
+
+    if (plano === 'free') {
+      toast.info('Free já é o plano padrão.')
+      router.replace('/dashboard')
+      return
+    }
+
+    if (!['essential', 'platinum', 'clinica'].includes(plano)) return
+
+    if (currentPlan === plano) {
+      const nice = plano.charAt(0).toUpperCase() + plano.slice(1)
+      toast.info(`Você já assina o plano ${nice}.`)
+      setTimeout(() => {
+        document.getElementById(`card-${plano}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 200)
+      return
+    }
+
+    setTimeout(() => {
+      document.getElementById(`card-${plano}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 150)
+    setTimeout(() => { startSubscription(plano as PaidPlan) }, 700)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPlan, searchParams])
 
   const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const cep = e.target.value.replace(/\D/g, '')
@@ -230,7 +273,7 @@ export default function AssinarPage() {
       <div className="relative w-full max-w-6xl grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-center">
 
         {/* FREE */}
-        <div className="relative flex flex-col rounded-[2rem] border border-border/60 bg-card p-7 shadow-sm h-full transition-all duration-700 hover:shadow-md hover:-translate-y-0.5 order-4 xl:order-1"
+        <div id="card-free" className="relative flex flex-col rounded-[2rem] border border-border/60 bg-card p-7 shadow-sm h-full transition-all duration-700 hover:shadow-md hover:-translate-y-0.5 order-4 xl:order-1"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)', transitionDelay: `${CARD_DELAY[0]}ms` }}>
           <div className="flex items-center gap-2 mb-1">
             <Shield className="w-4 h-4 text-muted-foreground" />
@@ -251,7 +294,7 @@ export default function AssinarPage() {
         </div>
 
         {/* ESSENTIAL */}
-        <div className="relative flex flex-col rounded-[2rem] bg-card p-7 h-full transition-all duration-700 hover:-translate-y-1 order-2 xl:order-2"
+        <div id="card-essential" className="relative flex flex-col rounded-[2rem] bg-card p-7 h-full transition-all duration-700 hover:-translate-y-1 order-2 xl:order-2"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)', transitionDelay: `${CARD_DELAY[1]}ms`, border: '1px solid rgba(20,184,166,0.35)' }}
           onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 0 28px 2px rgba(20,184,166,0.13)')}
           onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}>
@@ -293,7 +336,7 @@ export default function AssinarPage() {
         </div>
 
         {/* PLATINUM */}
-        <div className="relative flex flex-col rounded-[2rem] h-full transition-[opacity,transform] duration-700 xl:-mt-4 order-1 xl:order-3"
+        <div id="card-platinum" className="relative flex flex-col rounded-[2rem] h-full transition-[opacity,transform] duration-700 xl:-mt-4 order-1 xl:order-3"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)', transitionDelay: `${CARD_DELAY[2]}ms`, animation: visible ? 'glow-pulse-plat 3.5s ease-in-out infinite' : 'none' }}>
           <div className="absolute -inset-[1.5px] rounded-[2rem]" style={{ ...platShimmer, opacity: 0.9 }} />
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap"
@@ -366,7 +409,7 @@ export default function AssinarPage() {
         </div>
 
         {/* CLÍNICA */}
-        <div className="relative flex flex-col rounded-[2rem] h-full transition-[opacity,transform] duration-700 order-3 xl:order-4"
+        <div id="card-clinica" className="relative flex flex-col rounded-[2rem] h-full transition-[opacity,transform] duration-700 order-3 xl:order-4"
           style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(24px)', transitionDelay: `${CARD_DELAY[3]}ms`, animation: visible ? 'glow-pulse-clinic 3.5s ease-in-out infinite' : 'none' }}>
           <div className="absolute -inset-[1px] rounded-[2rem]" style={{ background: CLINIC_BORDER, opacity: 0.65 }} />
           <div className="relative rounded-[calc(2rem-1px)] overflow-hidden flex flex-col flex-1 h-full" style={{ background: '#0d0520' }}>

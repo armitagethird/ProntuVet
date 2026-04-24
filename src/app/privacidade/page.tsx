@@ -87,8 +87,9 @@ export default function PrivacidadePage() {
                 </div>
 
                 <div>
-                    <h2 className="text-xl font-bold mb-2">9. Encarregado (DPO)</h2>
-                    <p>Para solicitações de exercício de direitos ou dúvidas de privacidade, escreva para <a href="mailto:prontuvet.social@gmail.com" className="text-teal-600 underline">prontuvet.social@gmail.com</a>.</p>
+                    <h2 className="text-xl font-bold mb-2">9. Encarregado (DPO) e contato</h2>
+                    <p>Para solicitações de exercício de direitos ou dúvidas de privacidade, escreva para <a href="mailto:privacidade@prontuvet.com" className="text-teal-600 underline">privacidade@prontuvet.com</a>.</p>
+                    <p className="mt-2">Dúvidas gerais sobre o serviço: <a href="mailto:contato@prontuvet.com" className="text-teal-600 underline">contato@prontuvet.com</a>.</p>
                 </div>
 
                 <div>

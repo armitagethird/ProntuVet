@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-export function SignupForm() {
+export function SignupForm({ redirectTo }: { redirectTo?: string }) {
     const [specialization, setSpecialization] = useState<string>('')
     const [cpf, setCpf] = useState('')
 
@@ -29,6 +29,7 @@ export function SignupForm() {
 
     return (
         <form action={signup}>
+            {redirectTo && <input type="hidden" name="redirectTo" value={redirectTo} />}
             <div className="grid gap-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
