@@ -11,9 +11,10 @@ function safeRedirect(raw: FormDataEntryValue | null): string {
     return raw
 }
 
-function loginErrorUrl(message: string, redirectTo: string): string {
+function loginErrorUrl(message: string, redirectTo: string, tab?: 'login' | 'signup'): string {
     const qs = new URLSearchParams({ error: message })
     if (redirectTo !== '/dashboard') qs.set('redirect', redirectTo)
+    if (tab) qs.set('tab', tab)
     return `/login?${qs.toString()}`
 }
 
@@ -55,7 +56,7 @@ export async function signup(formData: FormData) {
 
     if (!lgpdConsent) {
         redirect(
-            loginErrorUrl('É necessário aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.', redirectTo),
+            loginErrorUrl('É necessário aceitar os Termos de Uso e a Política de Privacidade para criar sua conta.', redirectTo, 'signup'),
         )
     }
 
@@ -68,7 +69,7 @@ export async function signup(formData: FormData) {
 
     if (existingProfile) {
         redirect(
-            loginErrorUrl('Este CPF já está cadastrado em outra conta. Recupere sua senha ou use outro CPF.', redirectTo),
+            loginErrorUrl('Este CPF já está cadastrado em outra conta. Recupere sua senha ou use outro CPF.', redirectTo, 'signup'),
         )
     }
 
@@ -98,7 +99,7 @@ export async function signup(formData: FormData) {
             friendlyMessage = 'Ocorreu um erro ao salvar seus dados. Verifique se o CPF ou e-mail já estão em uso.'
         }
 
-        redirect(loginErrorUrl(friendlyMessage, redirectTo))
+        redirect(loginErrorUrl(friendlyMessage, redirectTo, 'signup'))
     }
 
     // Registra o aceite LGPD. Tolerante a falhas para não bloquear cadastro.

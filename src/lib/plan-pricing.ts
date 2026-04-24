@@ -16,3 +16,20 @@ export function formatPrice(value: number): string {
 export function annualDiscount(plan: PaidPlano): number {
     return Math.round((1 - PRICING[plan].annual / PRICING[plan].monthly) * 100)
 }
+
+const VALID_PLANOS: readonly Plano[] = ['free', 'essential', 'platinum', 'clinica']
+
+export function parsePlanFromRedirect(
+    redirectTo: string | undefined | null,
+): { plano: Plano; ciclo: BillingCycle } | null {
+    if (!redirectTo || !redirectTo.startsWith('/assinatura')) return null
+    try {
+        const url = new URL(redirectTo, 'http://placeholder')
+        const plano = url.searchParams.get('plano')
+        if (!plano || !VALID_PLANOS.includes(plano as Plano)) return null
+        const ciclo: BillingCycle = url.searchParams.get('ciclo') === 'annual' ? 'annual' : 'monthly'
+        return { plano: plano as Plano, ciclo }
+    } catch {
+        return null
+    }
+}

@@ -7,7 +7,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-export function SignupForm({ redirectTo }: { redirectTo?: string }) {
+interface SignupFormProps {
+    redirectTo?: string
+    onSwitchToLogin?: () => void
+}
+
+export function SignupForm({ redirectTo, onSwitchToLogin }: SignupFormProps) {
     const [specialization, setSpecialization] = useState<string>('')
     const [cpf, setCpf] = useState('')
 
@@ -156,6 +161,19 @@ export function SignupForm({ redirectTo }: { redirectTo?: string }) {
                 <Button type="submit" className="w-full h-11 mt-2 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-600 hover:to-blue-600 text-white font-semibold text-base shadow-md shadow-teal-500/20 transition-all duration-300 hover:scale-[1.02]">
                     Criar Conta Grátis
                 </Button>
+
+                {onSwitchToLogin && (
+                    <p className="text-center text-sm text-muted-foreground pt-1">
+                        Já tem conta?{' '}
+                        <button
+                            type="button"
+                            onClick={onSwitchToLogin}
+                            className="font-bold text-primary hover:underline transition-colors"
+                        >
+                            Entrar
+                        </button>
+                    </p>
+                )}
             </div>
         </form>
     )
